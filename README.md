@@ -240,6 +240,16 @@ return
 ```
 
 Notice how I ensure to only open one database per thread. Although this is not a strict limitation its a recommendation.
+Alternatively queue up the large resource prior to the fork and use it in the callbacks:
+```xquery
+let $largeResource := doc('...')
+let $compute :=  function ($res) {
+  $res?*[. = $largeResource//name]
+}
+let $promises := ...
+return
+  promise:fork-join($promises)
+```
 
 * Not everything should be parrellized.
 
