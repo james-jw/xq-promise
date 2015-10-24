@@ -2,7 +2,7 @@
 An implementation of the promise pattern, as well as fork-join async processing for XQuery 3.1
 
 ## What is it?
-This library intends to implement the [promise][0] pattern as seen in many other languages and frameworks. Most notabley those in the javascript community. 
+This library to implement the [promise][0] pattern as seen in many other languages and frameworks. Most notabley those in the javascript community. 
 
 The pattern resolves around the idea of <code>deferred</code> execution through what is often called a <code>defer</code> object. When an action is deferred, it returns a function, known as <code>promise</code> that when executed at a later time will perform and return the results of the work it deferred. 
 
@@ -305,7 +305,10 @@ promse:fork-join($promises as function(*,map(*)), $compute-size as xs:integer?, 
 
 ##### Fork in Fork?
 Why not?! You may wonder if you can fork in a forked callback. The answer is YES! Generally this would not be advised however in certian 
-scenarious this beneficial. Here is an example:
+scenarious this is beneficial. Since all fork-joins share the same pool, inner forks merely ensure every thread is
+used to its maximum. However with anything, too many can be detremential and is dependent on the type of work being performed.  
+
+ Here is an example:
 
 ```xquery
 let $request := http:send-request($req, ?)
@@ -353,9 +356,9 @@ Implements [RevursiveTask][3] and performs the forking processing leveraging a f
 Currently the pool uses the number of CPUs to deteremine max thread count. See the Advanced section for overriding this.
 
 ### Shout Out!
-If you like what you see here please star the repo and follow me on github!
+If you like what you see here please star the repo and follow me on [github][7] or [linkedIn][6]
 
-Happy asyncrounous processing!
+Happy forking!!
 
 [0]: 'https://www.promisejs.org/patterns/'
 [1]: 'http://www.basex.org'
@@ -363,3 +366,5 @@ Happy asyncrounous processing!
 [3]: 'https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/RecursiveTask.html'
 [4]: 'http://docs.basex.org/javadoc/org/basex/query/QueryModule.html'
 [5]: 'https://github.com/james-jw/xqpm'
+[6]: 'https://www.linkedin.com/pub/james-wright/61/25a/101'
+[7]: 'https://github.com/james-jw'
