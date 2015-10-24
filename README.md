@@ -216,7 +216,7 @@ return
  $promises ! .(())
 ```
 
-In the above example, we use promises to queue up 25 requests and then execute them in order on the final call to
+In the above example, we use promises to queue up 25 requests and then execute them in order with:
 ```xquery
  $promises ! .(())
 ```
@@ -224,8 +224,8 @@ If you run this example in BaseX GUI and watch the output window, you will see t
 This is due to the addition of the ``trace? 'Results Found: '`` callback.
 
 Also notice, only one request is executed at a time. Each request must wait for the full response and processing of the previous. 
-This is a current limitation of BaseX as queries run in a single thread. There are several workaround such as splitting up the work via a
- master query, for example. All workaround however require extra effort and multiple components.
+This is a current limitation of BaseX as queries run in a single thread. There are several workarounds such as splitting up the work via a
+ master query, yet all workarounds I have witnessed require extra effort and multiple components.
 
 Luckily, with the introduction this module ``xq-promise``, this is no longer the case. Lets change the example above to use the newly introduced ``fork-join`` method to speed up this process by splitting the request work into multiple threads before returning to the parent querie's thread.
 
@@ -241,16 +241,15 @@ promise:fork-join($promises)
 If you watch this execute in BaseX you will quickly see its executing much faster, with multiple requests being processed at once. 
 
 On my machine, the first example without ``fork-join`` took roughly on average, 55 seconds. With ``fork-join`` this time dropped to 6 seconds!
-That is a clear advantage! Playing around with ``compute size`` and ``max fork`` I have been able to get this even lower to around 3 seconds on average!
+That is a clear advantage! Playing around with ``compute size`` and ``max forks`` I have been able to get this even lower to around 3 seconds on average!
 
 #### Interacting with shared resources
-With any async process comes the possibility of synchronization problems. Fortunately Basex from my observation during this work appears to be rather thread safe and the promise pattern 
+With any async process comes the possibility of synchronization problems. Fortunately, Basex from my observation during this work, appears to be rather thread safe and the promise pattern 
 helps ensure your queries are too. There are a few things to note however when using ``fork-join``
 
 ###### Never attempt to write to a database within a fork
-This does restrict you from writing to databases, it just means: compute in forks, write in the main threads.
-Fortunately you can be sure anything returned from the ``fork-join`` operation was returned on the main thread
-and thus is safe! 
+Luckily this does ``not`` restrict you from writing to databases, it just means: compute in forks, write after you have rejoined.
+Fortunately you can be sure anything returned from the ``fork-join`` operation was returned on the main thread and thus is safe! 
 
 For example:
 ```xquery
@@ -264,7 +263,7 @@ return
 ###### Do not open disc resources (databases, files) from multiple forks. 
 
 Now this may seem like a major limitation, but its not. You can still interact and even open these resources in callbacks, 
-and thus parallelized forks, however be cautious to only open a resource in a single piece of work.
+and thus parallelized forks, however be cautious to try and open a resource only once and hopefully in a single piece of work.
 
 ```xquery
 let $compute := function ($doc) {
@@ -283,9 +282,10 @@ return
 Its important to note that all callbacks will be executed in the fork they originated from. So in this case, opening each database and computing the windows will occur in each fork.
 If you attached an additional callback after $computer, it too would execute in its origin fork, and not the master thread. Amazing!
 
-In regards to database access, or any resources for that matter. Notice how I ensure to only open one database per fork. Although this is not a strict limitation its a recommendation.
+In regards to database access, or any resources for that matter. Notice how I ensure to only open one database per fork. 
+Although this is not a strict limitation its a recommendation.
 
-As an alternatively queue up the large resource prior to the fork and use it in the callbacks:
+As an alternative, queue up the large resource prior to the ``forki-join`` and use it in the callbacks:
 ```xquery
 let $largeResource := doc('...')
 let $compute :=  function ($res) {
@@ -311,17 +311,20 @@ For example:
 promise:fork-join($promises, 1)
 ```
 
-The above query sets the compute size to 1. The default is 2. Depending on the level of effort in performing an individual task, this option can
-be highly beneficial. For example when computing millions of small computations, it may be worthwhile to set this to some high number like ``1000``, for example. 
+The above query sets the compute size to 1. 
+* The default ``compute size`` is 2. 
+
+Depending on the level of effort in performing an individual task, this option can
+be highly beneficial. For example, when computing millions of small computations, it may be worthwhile to set this to some high number like ``1000``. 
 In contrary, when doing very computationally expensive tasks, it may be worth while to leave this alone, or set it to 1.
 
-The following set the ``compute size`` to 1 and the ``max forks`` to 20:
+The following query sets the ``compute size`` to 1 and the ``max forks`` to 20:
 ```xquery
 promise:fork-join($promises, 1, 20)
 ```
 
 For some operations, such as http requests, this can decrease script execution time.
-By default max forks is equal to the number of processor cores.
+* By default max forks is equal to the number of processor cores.
 
 Here is the complete signature:
 ```xquery
