@@ -166,7 +166,8 @@ In this example we perform two deferred actions and then merge their results in 
 We could continue to attach callbacks as needed until we are ready. There is no limit.
 
 #### Attach after creation
-So far all the examples have attached ``callbacks`` with ``defer`` or ``when``; however there is another, even more powerful way. A ``promise`` too can accept callbacks!
+So far, all the examples have attached ``callbacks`` during the call with ``defer`` or ``when`` ;however there is another, even more powerful way. 
+A ``promise`` can accept callbacks too!
 
 For example:
 ```xquery
@@ -185,7 +186,7 @@ return
 ```
 
 ## The Power of Async!
-Hopefully its clear now how to defer work, what a promise is and how to join multiple promises. It still may not be entirely clear the benefit with this pattern XQuery; however that is about to change.
+Hopefully its clear now, how to defer work, what a promise is and how to join multiple promises. It still may not be entirely clear the benefit with this pattern XQuery; however that is about to change.
 
 Let me introduce one last method, and the whole reason I wrote this library.
 
@@ -224,8 +225,9 @@ If you run this example in BaseX GUI and watch the output window, you will see t
 This is due to the addition of the ``trace? 'Results Found: '`` callback.
 
 Also notice, only one request is executed at a time. Each request must wait for the full response and processing of the previous. 
-This is a current limitation of BaseX as queries run in a single thread. There are several workarounds such as splitting up the work via a
- master query, yet all workarounds I have witnessed require extra effort and multiple components.
+This is a current limitation of BaseX since by design, runs queries in a single thread. There are several workarounds such as splitting up the work via a
+ master query, or using XQuery expression as a string to spawn another process. Although effective, all these workarounds require extra effort 
+and multiple components. Additionally they leave the language domain..
 
 Luckily, with the introduction this module ``xq-promise``, this is no longer the case. Lets change the example above to use the newly introduced ``fork-join`` method to speed up this process by splitting the request work into multiple threads before returning to the parent querie's thread.
 
