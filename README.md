@@ -239,8 +239,12 @@ return
   promise:fork-join($promises)
 ```
 
-Notice how I ensure to only open one database per thread. Although this is not a strict limitation its a recommendation.
-Alternatively queue up the large resource prior to the fork and use it in the callbacks:
+Its important to note that all callbacks will be executed in the fork they originated from. So in this case, opening each database and computing the windows will occur in each fork.
+If you attached an additional callback after $computer, it too would execute in its origin fork, and not the master thread. Amazing!
+
+In regards to database access, or any resources for that matter. Notice how I ensure to only open one database per fork. Although this is not a strict limitation its a recommendation.
+
+As an alternatively queue up the large resource prior to the fork and use it in the callbacks:
 ```xquery
 let $largeResource := doc('...')
 let $compute :=  function ($res) {
@@ -251,7 +255,7 @@ return
   promise:fork-join($promises)
 ```
 
-Other words of caution!
+##### Other words of caution!
 * Not everything should be parrellized.
 
 For example, disc writes and other opeations should be handled with care when using ``fork-join``
@@ -283,17 +287,19 @@ scenarious this beneficial. Here is an example:
 
 ```xquery
 let $request := http:send-request($req, ?)
-let $innerFork := function ($res) {
+let $request-all-links := function ($res) {
   let $promises := $res//a/@href ! promise:defer($request, .)
   return
     promise:fork-join($promises)
+}
 let $work := 
   for $uri in $uris
-  return promise:defer($request, $uri)
+  return promise:defer($request, $uri, map { 'then': $request-all-links })
 return
   promise:fork-join($work)
 ```
-In this case, since the inner fork join needs to make lots of external requests, this actually improves execution time.
+
+In this case, since the inner ``fork-join`` simply makes lots of external requests, this actually can improves execution time.
 
 ### Limitations
 With any async process their are limitations. So far these are the only noticed limitations:
