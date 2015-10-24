@@ -219,9 +219,24 @@ If you watch this execute in BaseX you will quickly see its executing much faste
 On my machine, the first example without ``fork-join`` took roughly 55 seconds on average. With ``fork-join`` this time dropped to 5 - 7 seconds!
 
 #### Interacting with shared resources
-With any async process comes the possiblity of synchronization problems. Fortunatly basex from my observation during this work appears to be rather thread safe and the promise pattern helps ensure this. There are a few things to note however when using ``fork-join``
+With any async process comes the possiblity of synchronization problems. Fortunatly basex from my observation during this work appears to be rather thread safe and the promise pattern 
+helps ensure your queries are too. There are a few things to note however when using ``fork-join``
 
-* Do not open databases from multiple threads. 
+###### Never attempt to write to a database within a fork
+This does restrict you from writing to databases, it just means: compute in forks, write in the main threads.
+Fortunately you can be sure anything returned from the ``fork-join`` operation was returned on the main thread
+and thus is safe! 
+
+For example:
+```xquery
+(: lots of computations chaining :)
+let $result := promise:fork-join($promises)
+return
+  for $result in $results
+  return db:add($db, $path, $result)
+```
+
+###### Do not open disc resources (databases, files) from multiple forks. 
 
 Now this may seem like a major limitation, but its not. You can still interact with databases in callbacks, just make sure to only open one db per piece of work to be forked. For example:
 
@@ -271,7 +286,8 @@ promise:fork-join($promises, 1)
 ```
 
 The above query sets the compute size to 1. The default is 2. Depending on the level of effort in performing an individual task, this option can
-be highly beneficial. For example when computing millions of small computations, it may be worthwhile to set this ``1000``, for example. 
+be highly beneficial. For example when computing millions of small computations, it may be worthwhile to set this to some high number like ``1000``, for example. 
+In contrary, when doing very computationally expensive tasks, it may be worth while to leave this alone, or set it to 1.
 
 The following set the ``compute size`` to 1 and the ``max forks`` to 20:
 ```xquery
@@ -281,8 +297,13 @@ promise:fork-join($promises, 1, 20)
 For some operations, such as http requests, this can decrease script exceution time.
 By default max forks is equal to the number of processor cores.
 
+Here is the complete signature:
+```xquery
+promse:fork-join($promises as function(*,map(*)), $compute-size as xs:integer?, $max-forks as xs:integer) as item()*
+```
+
 ##### Fork in Fork?
-You may wonder if you can fork in a forked callback? The answer is YES! Generally this would not be advised however in certian 
+Why not?! You may wonder if you can fork in a forked callback. The answer is YES! Generally this would not be advised however in certian 
 scenarious this beneficial. Here is an example:
 
 ```xquery
