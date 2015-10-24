@@ -2,28 +2,28 @@
 An implementation of the promise pattern, as well as fork-join async processing for XQuery 3.1
 
 ## What is it?
-This library to implement the [promise][0] pattern as seen in many other languages and frameworks. Most notabley those in the javascript community. 
+This library to implement the [promise][0] pattern as seen in many other languages and frameworks. Most notably those in the javascript community. 
 
 The pattern resolves around the idea of <code>deferred</code> execution through what is often called a <code>defer</code> object. When an action is deferred, it returns a function, known as <code>promise</code> that when executed at a later time will perform and return the results of the work it deferred. 
 
-Additionally, with the <code>defer</code> and <code>promise</code> functions comes the ability to attach futher processing at a later date, prior to actul execution via callback functions. This may sound confusing and hard to image; however, the examples below should hopefull make clearer.
+Additionally, with the <code>defer</code> and <code>promise</code> functions comes the ability to attach further processing at a later date, prior to actual execution via callback functions. This may sound confusing and hard to image; however, the examples below should hopefully make clearer.
 
 ## Why?
 The main driver behind implementing the promise pattern was to realize <code>async</code> execution of XQuery code within a single query. If this sounds enticing, keep reading!
 
-In my initial testing, many queries execute in under 1/5 somtimes, 1/10th the time.
+In my initial testing, many queries execute in under 1/5 sometimes, 1/10th the time.
 Take for example making 50 http requests. Without fork join, this takes upwards of 50 seconds, with 5.
 
 ## Thanks!
-I want to thank the [BaseX][1] team for their wonder implementation of ``XQuery 3.1`` and BaseX database in general.
-Its becuase of their hard work, great documentation, code samples and stellar code quality and readability that this module was made possible! 
+I want to thank the [BaseX][1] team for their wonder implementation of ``XQuery`` and the BaseX system in general.
+It is because of their hard work, great documentation, code samples and stellar, architecture, code quality and readability that this module was made possible! 
 
 ## Version BETA
 This module is currently in Beta and should be used with caution especially in scenarios involving the
 writing of sensitive data. 
 
 ## Dependencies
-This is currently dependent on [basex][1] and is not implementation agnostic.
+This is currently dependent on [Basex][1] and is not implementation agnostic.
 
 ## Installation
 Copy the ``xq-promise-x.jar`` into your ``basex\lib`` directory 
@@ -222,7 +222,7 @@ If you run this example in BaseX GUI and watch the output window, you will see t
 
 Also you will notice, only one request is executed at a time. The next request must wait for the full response and processing of the first. This is a current limitation of BaseX as queries run in a single thread. There are several workaround such as splitting up the work via master query for example, but they all require extra effor.
 
-Luckly, with the introduction of ``xq-promise`` this is no longer the case. Lets change the example above to use the newly introduced ``fork-join`` method to speed up this process by splitting the request work into multiple threads before returning to the parent querie's thread.
+Luckily, with the introduction of ``xq-promise`` this is no longer the case. Lets change the example above to use the newly introduced ``fork-join`` method to speed up this process by splitting the request work into multiple threads before returning to the parent querie's thread.
 
 Luckily the example above already uses defer and promises so the change is only one line. Replace:
 ```xquery
@@ -238,7 +238,7 @@ If you watch this execute in BaseX you will quickly see its executing much faste
 On my machine, the first example without ``fork-join`` took roughly 55 seconds on average. With ``fork-join`` this time dropped to 5 - 7 seconds!
 
 #### Interacting with shared resources
-With any async process comes the possiblity of synchronization problems. Fortunatly basex from my observation during this work appears to be rather thread safe and the promise pattern 
+With any async process comes the possibility of synchronization problems. Fortunately Basex from my observation during this work appears to be rather thread safe and the promise pattern 
 helps ensure your queries are too. There are a few things to note however when using ``fork-join``
 
 ###### Never attempt to write to a database within a fork
@@ -258,7 +258,7 @@ return
 ###### Do not open disc resources (databases, files) from multiple forks. 
 
 Now this may seem like a major limitation, but its not. You can still interact and even open these resources in callbacks, 
-and thus parrallelized forks, however be cautious to only open a resource in a single piece of work.
+and thus parallelized forks, however be cautious to only open a resource in a single piece of work.
 
 ```xquery
 let $compute := function ($doc) {
@@ -291,13 +291,13 @@ return
 ```
 
 ##### Other words of caution!
-* Not everything should be parrellized.
+* Not everything should be parallelized.
 
-For example, disc writes and other opeations should be handled with care when using ``fork-join``
+For example, disc writes and other operations should be handled with care when using ``fork-join``
 
 #### Advanced Forking
 Certain scenarios can be optimized by changing the:
-* compute size - Number of defered jobs to process per thread
+* compute size - Number of deferred jobs to process per thread
 * max forks - Max number of forked threads to allow at once.
 
 For example:
@@ -314,7 +314,7 @@ The following set the ``compute size`` to 1 and the ``max forks`` to 20:
 promise:fork-join($promises, 1, 20)
 ```
 
-For some operations, such as http requests, this can decrease script exceution time.
+For some operations, such as http requests, this can decrease script execution time.
 By default max forks is equal to the number of processor cores.
 
 Here is the complete signature:
@@ -323,9 +323,9 @@ promse:fork-join($promises as function(*,map(*)), $compute-size as xs:integer?, 
 ```
 
 ##### Fork in Fork?
-Why not?! You may wonder if you can fork in a forked callback. The answer is YES! Generally this would not be advised however in certian 
-scenarious this is beneficial. Since all fork-joins share the same pool, inner forks merely ensure every thread is
-used to its maximum. However with anything, too many can be detremential and is dependent on the type of work being performed.  
+Why not?! You may wonder if you can fork in a forked callback. The answer is YES! Generally this would not be advised however in certain 
+scenarios this is beneficial. Since all fork-joins share the same pool, inner forks merely ensure every thread is
+used to its maximum. However with anything, too many can be detrimental and is dependent on the type of work being performed.  
 
  Here is an example:
 
@@ -363,7 +363,7 @@ The XqPromise class implements [QueryModule][4] from the BaseX implementation an
 * fork-join
 
 #### XqDeferred
-This class is at the core of the [promise][1] pattern and representas a unit of work to perform in the future. It implements in the ``FItem`` class from the [BaseX][1] implementation and thus is a function. 
+This class is at the core of the [promise][1] pattern and represents a unit of work to perform in the future. It implements in the ``FItem`` class from the [BaseX][1] implementation and thus is a function. 
 
 If passed a empty sequence, it executes its work.
 
@@ -372,7 +372,7 @@ If provided a map of callback functions, the callbacks are added but no executio
 #### XqForkJoinTask
 Implements [RevursiveTask][3] and performs the forking processing leveraging a fixed [ForkJoinPool][2]
 
-Currently the pool uses the number of CPUs to deteremine max thread count. See the Advanced section for overriding this.
+Currently the pool uses the number of CPUs to determine max thread count. See the Advanced section for overriding this.
 
 ### Shout Out!
 If you like what you see here please star the repo and follow me on [github][7] or [linkedIn][6]
