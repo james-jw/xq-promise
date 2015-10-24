@@ -11,15 +11,25 @@ Additionally, with the <code>defer</code> and <code>promise</code> functions com
 ## Why?
 The main driver behind implementing the promise pattern was to realize <code>async</code> execution of XQuery code within a single query. If this sounds enticing, keep reading!
 
+In my initial testing, many queries execute in under 1/5 somtimes, 1/10th the time.
+Take for example making 50 http requests. Without fork join, this takes upwards of 50 seconds, with 5.
 
-## Version
-This module is currently in Beta and should be used with caution.
+## Thanks!
+I want to thank the [BaseX][1] team for their wonder implementation of ``XQuery 3.1`` and BaseX database in general.
+Its becuase of their hard work, great documentation, code samples and stellar code quality and readability that this module was made possible! 
+
+## Version BETA
+This module is currently in Beta and should be used with caution especially in scenarios involving the
+writing of sensitive data. 
 
 ## Dependencies
 This is currently dependent on [basex][1] and is not implementation agnostic.
 
 ## Installation
 Copy the ``xq-promise.jar`` into your ``basex\lib`` directory, or use [xqpm][5] to do it for you. 
+
+## Tests
+Clone the repo and run ``basex -t`` within repo's directory to run the unit tests.
 
 ## Declaration
 To use the module in your scripts simple import it like so:
