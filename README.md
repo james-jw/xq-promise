@@ -198,7 +198,7 @@ It is the simplest yet most powerful of the methods. It accepts a sequence of pr
 depending on the work load, followed by rejoining the work on the main thread. 
 As seen earlier, ``promises`` can be used to build up a piece of work for later execution. With this ability, coupled with ``fork-join``, async ``XQuery`` processing becomes a reality. 
 
-Lets see how we can use this capability by comparing a simple example involving making http requests, using deferred ``promised`` execute but without ``fork-join`` just yet. 
+Lets see how we can use this capability by comparing a simple example involving making http requests, using deferred ``promised`` execution but without ``fork-join`` just yet. 
 
 ```xquery
 import module namespace async = 'org.jw.basex.async.xq-promise';
@@ -220,24 +220,28 @@ In the above example, we use promises to queue up 25 requests and then execute t
 ```xquery
  $promises ! .(())
 ```
-If you run this example in BaseX GUI and watch the output window, you will see the requests come in as the query executes. This is due to the addition of the ``trace? 'Results Found: '`` callback.
+If you run this example in BaseX GUI and watch the output window, you will see the requests come in as the query executes. 
+This is due to the addition of the ``trace? 'Results Found: '`` callback.
 
-Also you will notice, only one request is executed at a time. The next request must wait for the full response and processing of the first. This is a current limitation of BaseX as queries run in a single thread. There are several workaround such as splitting up the work via master query for example, but they all require extra effor.
+Also notice, only one request is executed at a time. Each request must wait for the full response and processing of the previous. 
+This is a current limitation of BaseX as queries run in a single thread. There are several workaround such as splitting up the work via a
+ master query, for example. All workaround however require extra effort and multiple components.
 
-Luckily, with the introduction of ``xq-promise`` this is no longer the case. Lets change the example above to use the newly introduced ``fork-join`` method to speed up this process by splitting the request work into multiple threads before returning to the parent querie's thread.
+Luckily, with the introduction this module ``xq-promise``, this is no longer the case. Lets change the example above to use the newly introduced ``fork-join`` method to speed up this process by splitting the request work into multiple threads before returning to the parent querie's thread.
 
-Luckily the example above already uses defer and promises so the change is only one line. Replace:
+Luckily the example above already uses ``defer`` and ``promises`` so the change is only one line. Replace:
 ```xquery
 $promises ! .(())
 ```
-with
+which manually executes each promise on the main thread, with:
 ```xquery
 promise:fork-join($promises)
 ```
 
 If you watch this execute in BaseX you will quickly see its executing much faster, with multiple requests being processed at once. 
 
-On my machine, the first example without ``fork-join`` took roughly 55 seconds on average. With ``fork-join`` this time dropped to 5 - 7 seconds!
+On my machine, the first example without ``fork-join`` took roughly on average, 55 seconds. With ``fork-join`` this time dropped to 6 seconds!
+That is a clear advantage! Playing around with ``compute size`` and ``max fork`` I have been able to get this even lower to around 3 seconds on average!
 
 #### Interacting with shared resources
 With any async process comes the possibility of synchronization problems. Fortunately Basex from my observation during this work appears to be rather thread safe and the promise pattern 
