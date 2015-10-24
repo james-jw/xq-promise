@@ -1,2 +1,308 @@
 # xq-promise
 An implementation of the promise pattern, as well as fork-join async processing for XQuery 3.1
+
+## What is it?
+This library intends to implement the [promise][0] pattern as seen in many other languages and frameworks. Most notabley those in the javascript community. 
+
+The pattern resolves around the idea of <code>deferred</code> execution through what is often called a <code>defer</code> object. When an action is deferred, it returns a function, known as <code>promise</code> that when executed at a later time will perform and return the results of the work it deferred. 
+
+Additionally, with the <code>defer</code> and <code>promise</code> functions comes the ability to attach futher processing at a later date, prior to actul execution via callback functions. This may sound confusing and hard to image; however, the examples below should hopefull make clearer.
+
+## Why?
+The main driver behind implementing the promise pattern was to realize <code>async</code> execution of XQuery code within a single query. If this sounds enticing, keep reading!
+
+
+## Version
+This module is currently in Beta and should be used with caution.
+
+## Dependencies
+This is currently dependent on [basex][1] and is not implementation agnostic.
+
+## Installation
+Copy the ``xq-promise.jar`` into your ``basex\lib`` directory, or use [xqpm][5] to do it for you. 
+
+## Declaration
+To use the module in your scripts simple import it like so:
+
+```xquery
+import module namespace promise = 'org.jw.basex.async.xq-promise';
+```
+
+## Whats included?
+#### Methods:
+* defer
+* when
+* fork-join
+
+In its current iteration the library includes 3 methods with several overloads. The methods are as follows:
+
+### defer
+```xquery
+defer($work as function(*), 
+      $arguments as item()*, 
+      map(xs:string,function(*)*)?) 
+  as function(map(xs:string,function(*)*))
+```
+
+The signature may look daunting but the pattern is simple. Use the <code>defer</code> method to defer a piece of work for later execution by passing in a function item and the future arguments. Lets see how this works with an example:
+
+```xquery
+import module namespace promise = 'org.basex.query.func.async.xq-promise';
+let $work := function($name) {
+   'Hello ' || $name || '!'
+}
+let $promise := promise:defer($work, 'world')
+return
+  $promise
+```
+In the above example, we defer the execution of the $work method until we return <code>$promise</code> 
+
+But wait! If you examine the output in [basex][1]. The value returned is: <code>function (anonymous)#1</code>. This is not at all what we want.
+
+This is where the power of the promise pattern starts to be realized. Formost, a mentioned prior, a promise '`is`' a function. To retrieve its value, it must be called:
+
+```xquery
+$promise(())
+```
+The above modifcation will result in the expected answer: <code>Hello world!</code>
+
+Now you may be wondering about the <code>$promise(())</code>, in particular the passing of the ``()`` empty sequence. By passing an empty sequence into the promises method we instruct it to exceute its work and return the results. The alternative is to pass in a ``map(xs:string, function(*))`` of callbacks!
+
+### Callbacks
+In the above example we deferred a simple piece of work and then learned how to execute it at a later time by passing in the empty sequence. Now let me introduce the real power of the [promise][0] pattern with <code>callbacks</code>
+
+A ``callback`` is a function which will be executed on the success or failure of some defered work. The available callback events to subscribe to are:
+
+##### then
+Called on success of a deferred exectuion. Acts a pipeline function for transforming response for successive callback attachements.
+
+##### done
+Called on success. Has not affect on response
+
+##### always
+Same as done, but also called on failure
+
+##### fail
+Called if the action fails. Returning a result mitigates the failure while throwing an exception propegates it.
+
+#### Adding callbacks
+There are two ways to add callbacks. During its creation, or after.
+
+Lets see an example of the first case. Imagine we want to make a request using the standard ``http:send-request`` method and then extract the results in a single streamlined call. Here is how this could be accomplished using <code>promises</code> pattern and attaching a ``then`` <code>callback</code>
+```xquery
+let $req := <http:request method="GET" />
+let $request := http:send-request($req, ?)
+let $extract-body := function ($res) { $res[2] }
+let $promise := promise:defer($request, 'http://www.google.com', map { 'then': $extract-body })
+return
+  $promise(())
+```
+In the above example we attached a ``then`` callback. As stated above, this function has the ability to transform the output of its parent ``promise``. With this in the mind it should be clear that the ``$extract-body`` methods return value will be realized on the call to ``$promise(())``. Since the ``$extract-body's`` input will be the result of its parent ``promise`` the result will simply be the response body of the http request.
+
+Multiple callbacks can be attached to one of the 4 events. For example:
+```xquery
+ ... same $req, etc.. from above ...
+let $extract-links := function ($res) { $res//a }
+let $promise := promise:defer($request, 'http://www.google.com', map { 
+    'then': ($extract-body, $extract-links),
+    'fail': trace(?, 'Execution failed: ')
+})
+return
+  $promise(())
+```
+Foremost, note the addition of a second ``then`` callback. These will be called in order and thus the result of the firsts callback will be passed to the seconds. In this example the result is all of the ``a`` links in the document!
+
+Second, note the ``fail`` callback. In this case we used the power of XQuery 3.0 and function items to simply add a trace call if any part of the execution fails, how convenient!
+
+Hopefully its starting to come clear how the ``promise`` pattern can be quite useful.
+
+#### when
+Another critical method in the [promise][0] pattern is the ``when`` function.
+```xquery
+when($promises as function(map(xs:string,function(*)), 
+     $callbacks as map(*,function(*))) 
+     as function(map(*,function(*)))
+```
+
+The purpose of  ``when`` is to combine 2 or more promised actions during execution. This is extremly powerful. Like the ``defer`` method disscussed earlier, the ``when`` method also returns a deferred ``promise`` itself and also, accepts callbacks just the same.
+
+For example:
+```xquery
+let $write-and-return-users:= function ($name, $users) as item()* {(
+      file:write($name, $users),
+      $users
+)}
+let $extractDocName := promise:defer(doc(?), $doc-uri, map { 'then': extract-name(?) })
+let $extractUsers := promise:defer(json-doc(?), $uri, map { 'then': $extractListItems }) 
+let $users:= promise:when(($extractDocName, $extractUsers), map { 
+               'then': $write-and-return-users,
+               'fail': trace(?, 'Requesting users failed: ')
+})
+return
+    $users(()) ! trace(.?username, 'Retrieved: ')
+```
+
+In this example we perform two deferred actions and then merge their results in the ``$write-and-return-users`` callback. Since this item is attached to the ``when's`` promise on the ``then`` callback, its result will be seen on the call to ``$users(())``.
+
+We could continue to attach callbacks as needed until we are ready. There is no limit.
+
+#### Attach after creation
+So far all the examples have attached ``callbacks`` with ``defer`` or ``when``; however there is another, even more powerful way. A ``promise`` too can accept callbacks!
+
+For example:
+```xquery
+(: Same $worker, $req as above etc... :)
+let $extractListItems := function ($res as map(*)) { $res?list?* } 
+let $error := function ($result as item()*) {
+     trace($result, 'Request failed!') => prof:void()
+}
+let $retrieve := proc:defer($worker, ($req, $uri), map { 
+           'then': parse-json(?), 
+           'fail': $error 
+}) 
+let $extract = $retrieve(map { 'then': $extractListItems  })
+return
+   $retrieve(())
+```
+
+## The Power of Async!
+Hopefully its clear now how to defer work, what a promise is and how to join multiple promises. It still may not be entirely clear the benefit with this pattern XQuery; however that is about to change.
+
+Let me introduce one last method, and the whole reason I wrote this library.
+
+### Fork-join
+```xquery
+fork-join($promises as function(*)*) as item()*
+```
+
+It is the simplest yet most powerful of the methods. It accepts a sequence of deferreds and executes them in a fork join fashion, spawning threads as needed depending on the work load and then joining the work. As seen earlier, promises can be used to build up a piece of work before later execution. With this ability, coupled with ``fork-join``, async ``XQuery`` processing becomes a reality. 
+
+Lets see how we can use this by comparing a simple example of making http requests, using ``promises`` but without ``fork-join``. 
+
+```xquery
+import module namespace async = 'org.basex.query.func.async.Promise';
+let $work := http:send-request(<http:request method="GET" />, ?)
+let $extract-doc := function ($res) { $res[2] }
+let $extract-links := function ($res) { $res//a[@href => matches('^http')] }
+let $promises :=
+  for $uri in ((1 to 5) ! ('http://www.google.com', 'http://www.yahoo.com', 'http://www.amazon.com', 'http://cnn.com', 'http://www.msnbc.com'))
+  let $defer := async:defer($work, $uri, map {
+       'then': ($extract-doc),
+       'done': trace(?, 'Results found: ')})
+  return 
+     $defer(map {'then': $extract-links })
+return 
+ $promises ! .(())
+```
+
+In the above example, we use promises to queue up 25 requests and then execute them in order on the final call to
+```xquery
+ $promises ! .(())
+```
+If you run this example in BaseX GUI and watch the output window, you will see the requests come in as the query executes. This is due to the addition of the ``trace? 'Results Found: '`` callback.
+
+Also you will notice, only one request is executed at a time. The next request must wait for the full response and processing of the first. This is a current limitation of BaseX as queries run in a single thread. There are several workaround such as splitting up the work via master query for example, but they all require extra effor.
+
+Luckly, with the introduction of ``xq-promise`` this is no longer the case. Lets change the example above to use the newly introduced ``fork-join`` method to speed up this process by splitting the request work into multiple threads before returning to the parent querie's thread.
+
+Luckily the example above already uses defer and promises so the change is only one line. Replace:
+```xquery
+$promises ! .(())
+```
+with
+```xquery
+promise:fork-join($promises)
+```
+
+If you watch this execute in BaseX you will quickly see its executing much faster, with multiple requests being processed at once. 
+
+On my machine, the first example without ``fork-join`` took roughly 55 seconds on average. With ``fork-join`` this time dropped to 5 - 7 seconds!
+
+#### Interacting with shared resources
+With any async process comes the possiblity of synchronization problems. Fortunatly basex from my observation during this work appears to be rather thread safe and the promise pattern helps ensure this. There are a few things to note however when using ``fork-join``
+
+* Do not open databases from multiple threads. 
+
+Now this may seem like a major limitation, but its not. You can still interact with databases in callbacks, just make sure to only open one db per piece of work to be forked. For example:
+
+```xquery
+let $compute := function ($doc) {
+   for sliding window $w in string-to-codepoints($doc)
+   start at $spos when true()
+   end at $epos when $epos - $spos = 25
+   return $w
+}
+let $promises := db:list() ! promise:defer(db:open(?), ., map {
+     'then': $compute
+}
+return
+  promise:fork-join($promises)
+```
+
+Notice how I ensure to only open one database per thread. Although this is not a strict limitation its a recommendation.
+
+* Not everything should be parrellized.
+
+For example, disc writes and other opeations should be used with caution when using ``fork-join``
+
+#### Advanced Forking
+Certain scenarios can be optimized by changing the:
+* compute size - Number of defered jobs to process per thread
+* max forks - Max number of forked threads to allow at once.
+
+For example:
+```xquery
+promise:fork-join($promises, 1)
+```
+
+The above query sets the compute size to 1. The default is 2. Depending on the level of effort in performing an individual task, this option can
+be highly beneficial. For example when computing millions of small computations, it may be worthwhile to set this ``1000``, for example. 
+
+The following set the ``compute size`` to 1 and the ``max forks`` to 20:
+```xquery
+promise:fork-join($promises, 1, 20)
+```
+
+For some operations, such as http requests, this can decrease script exceution time.
+By default max forks is equal to the number of processor cores.
+
+### Limitations
+With any async process their are limitations. So far these are the only noticed limitations:
+* Updating database nodes in a callback
+
+### Implementation Details
+
+This library is implemented for [BaseX][1] via the [QueryModule][4] class. It leverages Jave 7's [ForkJoinPool][2] pool and [RecursiveTasks][3] classes and patterns. There are three ``java`` files as part of the implementation:
+* XqPromise.java
+* XqDeferred.java
+* XqForkJoin.java
+
+#### XqPromise
+The XqPromise class implements [QueryModule][4] from the BaseX implementation and exposes the methods described earlier:
+* defer
+* when
+* fork-join
+
+#### XqDeferred
+This class is at the core of the [promise][1] pattern and representas a unit of work to perform in the future. It implements in the ``FItem`` class from the [BaseX][1] implementation and thus is a function. 
+
+If passed a empty sequence, it executes its work.
+
+If provided a map of callback functions, the callbacks are added but no execution is performed.
+
+#### XqForkJoinTask
+Implements [RevursiveTask][3] and performs the forking processing leveraging a fixed [ForkJoinPool][2]
+
+Currently the pool uses the number of CPUs to deteremine max thread count. See the Advanced section for overriding this.
+
+### Shout Out!
+If you like what you see here please star the repo and follow me on github!
+
+Happy asyncrounous processing!
+
+[0]: 'https://www.promisejs.org/patterns/'
+[1]: 'http://www.basex.org'
+[2]: 'https://docs.oracle.com/javase/tutorial/essential/concurrency/forkjoin.html'
+[3]: 'https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/RecursiveTask.html'
+[4]: 'http://docs.basex.org/javadoc/org/basex/query/QueryModule.html'
+[5]: 'https://github.com/james-jw/xqpm'
