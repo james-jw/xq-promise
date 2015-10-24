@@ -251,9 +251,10 @@ return
   promise:fork-join($promises)
 ```
 
+Other words of caution!
 * Not everything should be parrellized.
 
-For example, disc writes and other opeations should be used with caution when using ``fork-join``
+For example, disc writes and other opeations should be handled with care when using ``fork-join``
 
 #### Advanced Forking
 Certain scenarios can be optimized by changing the:
@@ -275,6 +276,24 @@ promise:fork-join($promises, 1, 20)
 
 For some operations, such as http requests, this can decrease script exceution time.
 By default max forks is equal to the number of processor cores.
+
+##### Fork in Fork?
+You may wonder if you can fork in a forked callback? The answer is YES! Generally this would not be advised however in certian 
+scenarious this beneficial. Here is an example:
+
+```xquery
+let $request := http:send-request($req, ?)
+let $innerFork := function ($res) {
+  let $promises := $res//a/@href ! promise:defer($request, .)
+  return
+    promise:fork-join($promises)
+let $work := 
+  for $uri in $uris
+  return promise:defer($request, $uri)
+return
+  promise:fork-join($work)
+```
+In this case, since the inner fork join needs to make lots of external requests, this actually improves execution time.
 
 ### Limitations
 With any async process their are limitations. So far these are the only noticed limitations:
