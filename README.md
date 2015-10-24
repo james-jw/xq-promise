@@ -238,7 +238,8 @@ return
 
 ###### Do not open disc resources (databases, files) from multiple forks. 
 
-Now this may seem like a major limitation, but its not. You can still interact with databases in callbacks, just make sure to only open one db per piece of work to be forked. For example:
+Now this may seem like a major limitation, but its not. You can still interact and even open these resources in callbacks, 
+and thus parrallelized forks, however be cautious to only open a resource in a single piece of work.
 
 ```xquery
 let $compute := function ($doc) {
