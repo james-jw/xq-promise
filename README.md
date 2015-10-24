@@ -180,7 +180,7 @@ It is the simplest yet most powerful of the methods. It accepts a sequence of de
 Lets see how we can use this by comparing a simple example of making http requests, using ``promises`` but without ``fork-join``. 
 
 ```xquery
-import module namespace async = 'org.basex.query.func.async.Promise';
+import module namespace async = 'org.jw.basex.async.xq-promise';
 let $work := http:send-request(<http:request method="GET" />, ?)
 let $extract-doc := function ($res) { $res[2] }
 let $extract-links := function ($res) { $res//a[@href => matches('^http')] }
