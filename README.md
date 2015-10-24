@@ -26,7 +26,16 @@ writing of sensitive data.
 This is currently dependent on [basex][1] and is not implementation agnostic.
 
 ## Installation
-Copy the ``xq-promise.jar`` into your ``basex\lib`` directory, or use [xqpm][5] to do it for you. 
+Copy the ``xq-promise-x.jar`` into your ``basex\lib`` directory 
+
+Or use [xqpm][5] to do it for you:
+```
+xqpm xq-promise
+```
+
+Then import the
+``org.jw.basex.async.xq-promse` module.
+
 
 ## Tests
 Clone the repo and run ``basex -t`` within repo's directory to run the unit tests.
