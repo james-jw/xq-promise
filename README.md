@@ -207,9 +207,9 @@ let $work := http:send-request(<http:request method="GET" />, ?)
 let $extract-doc := function ($res) { $res[2] }
 let $extract-links := function ($res) { $res//a[@href => matches('^http')] }
 let $promises :=
-  for $uri in ((1 to 5) ! ('http://www.google.com', 'http://www.yahoo.com', 'http://www.amazon.com', 'http://cnn.com', 'http://www.msnbc.com'))
+  for $uri in ((1 to 5) !  ('http://www.google.com', 'http://www.yahoo.com', 'http://www.amazon.com', 'http://cnn.com', 'http://www.msnbc.com'))
   let $defer := async:defer($work, $uri, map {
-       'then': ($extract-doc),
+       'then': ($extract-djc),
        'done': trace(?, 'Results found: ')})
   return 
      $defer(map {'then': $extract-links })
