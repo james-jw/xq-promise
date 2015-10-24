@@ -194,7 +194,7 @@ Let me introduce one last method, and the whole reason I wrote this library.
 fork-join($promises as function(*)*) as item()*
 ```
 
-It is the simplest yet most powerful of the methods. It accepts a sequence of deferreds and executes them in a fork join fashion, spawning threads as needed 
+It is the simplest yet most powerful of the methods. It accepts a sequence of promises and executes them in a fork join fashion, spawning threads as needed 
 depending on the work load, followed by rejoining the work on the main thread. 
 As seen earlier, ``promises`` can be used to build up a piece of work for later execution. With this ability, coupled with ``fork-join``, async ``XQuery`` processing becomes a reality. 
 
