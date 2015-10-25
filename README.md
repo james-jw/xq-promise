@@ -38,7 +38,7 @@ This module is currently in Beta and should be used with caution. Especially in 
 writing of sensitive data. 
 
 ### Dependencies
-This module is currently dependent on [BaseX][1].
+This module is dependent on [BaseX][1].
 
 ## Whats included?
 In it's current iteration the library includes 4 methods with several overloads. The methods are as follows:
