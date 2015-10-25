@@ -411,9 +411,9 @@ If provided a map of callback functions, the callbacks are added but no executio
 is a new deferred which will include the added callback in its pipeline.
 
 #### XqForkJoinTask
-Implements [RevursiveTask][3] and performs the forking processing leveraging a fixed [ForkJoinPool][2]
+Implements [RecursiveTask][3] and performs the forking process leveraging a fixed [ForkJoinPool][2]
 
-Currently the pool uses the number of CPUs to determine max thread count. See the Advanced section for overriding this.
+The pool size is deteremined by default by the number of CPU cores. See the Advanced section for overriding this.
 
 ### Shout Out!
 If you like what you see here please star the repo and follow me on [github][7] or [linkedIn][6]
