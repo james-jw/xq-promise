@@ -184,7 +184,7 @@ when($promises as function(map(*,function(*)),
    as function(map(*,function(*)))
 ```
 
-The purpose of  ``when`` is to combine 2 or more promised actions during execution. This is extremly powerful. Like the ``defer`` method disscussed earlier, the ``when`` method also returns a deferred ``promise``, which accepts callbacks just the same.
+The purpose of  ``when`` is to combine 2 or more promised actions into a single promise. This is extremly powerful. Like the ``defer`` method disscussed earlier, the ``when`` method also returns a deferred ``promise``, which accepts callbacks just the same.
 
 For example:
 ```xquery
