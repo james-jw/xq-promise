@@ -4,14 +4,16 @@
 
   <groupId>org.jw.basex</groupId>
   <artifactId>xq-promise</artifactId>
-  <version>0.6-Beta</version>
+  <version>0.7-Beta</version>
   <packaging>jar</packaging>
-
+  
   <name>xq-promise</name>
   <url>http://maven.apache.org</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.source>1.7</maven.compiler.source>
+    <maven.compiler.target>1.7</maven.compiler.target>
   </properties>
 
   <dependencies>
@@ -26,7 +28,7 @@
       <artifactId>basex-parent</artifactId>
       <version>8.3.1-SNAPSHOT</version>
       <scope>system</scope>
-      <systemPath>./lib/BaseX831.jar</systemPath>
+      <systemPath>/root/Projects/xq-promise/lib/BaseX831.jar</systemPath>
     </dependency>
   </dependencies>
   <organization>
