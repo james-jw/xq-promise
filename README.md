@@ -266,8 +266,9 @@ On my machine, the first example without ``fork-join`` took on average 55 second
 That is a clear advantage! Playing around with ``compute size`` and ``max forks``, which I will introduce shortly, I have been able to get this even lower, to around 2 seconds!!
 
 #### Interacting with shared resources
-With any async process comes the possibility of synchronization problems. Fortunately, Basex from my observation during this work, appears to be rather thread safe and the promise pattern 
-helps ensure your queries are too. There are a few things to note however when using ``fork-join``
+With any async process comes the possibility of synchronization problems. Fortunately, XQuery due to its immutable nature is naturally suited to this type of work. Additionally from my limited look at BaseX, the code is very thread safe. Add to this, the introduction of the promise pattern and safe multi-threading appears to be real. 
+
+There are a few things to note however when using ``fork-join``:
 
 ###### Never attempt to write to a database within a fork
 Luckily this does ``not`` restrict you from writing to databases, it just means: compute in forks, write after you have rejoined.
