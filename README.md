@@ -155,7 +155,7 @@ let $extract = $retrieve(map { 'then': $extractListItems  })
 return
    $extract(())
 ```
-Note how the ``$extractListItems`` callback is appended to the $retrieve ``promise`` resulting in a new promise ``$extract`` which when executing will initiate the full chain of callbacks!
+Note how the ``$extractListItems`` callback is appended to the ``$retrieve`` promise resulting in a new promise ``$extract``. Which, when executing will initiate the full chain of callbacks!
 
 ##### Multiple Callbacks per event
 
