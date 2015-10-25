@@ -31,7 +31,7 @@ declare %unit:test function test:callbacks-fail() {
   let $work := promise:defer(function () { fn:error('Failed!') })
   let $promise := $work(map { 'fail': $callback })
   return
-    ($promise(()), file:exists($path), file:delete($path))
+    ($promise(()), unit:assert-equals(file:exists($path),true()), file:delete($path))
 };
 
 declare %unit:test function test:callbacks-fail-fix-value() {
@@ -62,6 +62,17 @@ declare %unit:test function test:callback-then() {
       })
   return
     unit:assert-equals($promise(()), 'Hello world!')
+};
+
+declare %unit:test function test:callback-always-on-fail() {
+  let $type := 'always'
+  let $path := file:temp-dir() || $type || '.txt'
+  let $callback := file:write-text($path, ?)
+  let $failedWork := function () { fn:error("Failed!") }
+  let $work := promise:defer($failedWork, $type)
+  let $promise := $work(map { $type: $callback })
+  return
+    ($promise(()), unit:assert-equals(file:exists($path), true()), file:delete($path))
 };
 
 declare %unit:test function test:multiple-callbacks() {
@@ -124,18 +135,27 @@ declare %unit:test function test:fork-join() {
 };
 
 declare %unit:test function test:fork-join-shared-resource() {
-  let $shared := array { for $i in (1 to 1000) return map { 'value': $i } }
+  let $shared := array { for $i in (1 to 1001) return map { 'value': $i } }
   let $work := function ($input) { 
     let $value := $shared?*[?value = $input]
     return 
       element text {json:serialize($value)} 
   }
-  let $promises := for $i in (1 to 1000) 
+  let $promises := for $i in (1 to 1001) 
                    return promise:defer($work, $i)
   return
     let $out := promise:fork-join($promises, 100)
     let $sum := sum((($out ! promise:defer(parse-json(?), .)) 
        => promise:fork-join(100))?value)  
     return
-      unit:assert-equals($sum, 500500)
+      unit:assert-equals($sum, 501501)
+};
+
+declare %unit:test function test:is-promise() {
+   let $promise := promise:defer(trace(?), '')
+   return
+   (
+      unit:assert-equals(promise:is-promise($promise), true()),
+      unit:assert-equals(promise:is-promise(trace(?)), false())
+   )
 };
