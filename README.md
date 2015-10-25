@@ -75,7 +75,7 @@ let $promise := promise:defer($work, 'world')
 return
   $promise
 ```
-In the above example, we defer the execution of the $work method until we return <code>$promise</code> 
+In the above example, we defer the execution of the $work method until we return <code>$promise</code>. Upon execution of the code we should see ``hello world!``.
 
 But wait! If you examine the output in [basex][1]. The value returned is: <code>function (anonymous)#1</code>. This is not at all what we want.
 
