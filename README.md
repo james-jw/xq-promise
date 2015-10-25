@@ -34,11 +34,11 @@ xqpm xq-promise
 ```
 
 Then import the
-``org.jw.basex.async.xq-promse` module.
+``org.jw.basex.async.xq-promse` module into your scripts!
 
 
 ## Tests
-Clone the repo and run ``basex -t`` within repo's directory to run the unit tests.
+Clone the repo and run ``basex -t`` within the repo's directory to run the unit tests.
 
 ## Declaration
 To use the module in your scripts simple import it like so:
