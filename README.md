@@ -302,7 +302,7 @@ return
 ```
 
 Its important to note that all callbacks will be executed in the fork they originated from. So in this case, opening each database and computing the windows will occur in each fork.
-If you attached an additional callback after $computer, it too would execute in its origin fork, and not the master thread. Amazing!
+If you attached an additional callback after ``$compute``, it too would execute in its origin fork, and not the master thread. Amazing!
 
 In regards to database access, or any resources for that matter. Notice how I ensure to only open one database per fork. 
 Although this is not a strict limitation its a recommendation.
@@ -329,6 +329,8 @@ Certain scenarios can be optimized by changing the:
 * max forks - Max number of forked threads to allow at once.
 
 ##### Compute size
+Setting compute size is done during the call to ``fork-join`` by providing an additional ``xs:integer`` argument
+
 For example:
 ```xquery
 promise:fork-join($promises, 1)
@@ -340,7 +342,7 @@ The above query sets the compute size to 1.
 Depending on the level of effort in performing an individual task, this option can
 be highly beneficial. For example, when computing millions of small computations, it may be worthwhile to increase the value significanly. For example to ``1000``.
 
-On the contrary, when doing very computationally expensive tasks it may be best to leave this alone option alone or even lower it to 1.
+On the contrary, when doing very computationally expensive tasks it may be best to leave this option alone, or even lower it to 1.
 
 ##### Max forks
 The following query sets the ``compute size`` to 1 and the ``max forks`` to 20:
@@ -388,7 +390,7 @@ With any async process their are limitations. So far these are the only noticed 
 
 ### Implementation Details
 
-This library is implemented for [BaseX][1] via the [QueryModule][4] class. It leverages Jave 7's [ForkJoinPool][2] pool and [RecursiveTasks][3] classes and patterns. There are three ``java`` files as part of the implementation:
+This library is implemented for [BaseX][1] via the [QueryModule][4] class. It leverages Jave 7's [ForkJoinPool][2] and [RecursiveTasks][3] classes and patterns. There are three ``java`` source files as part of the implementation:
 * XqPromise.java
 * XqDeferred.java
 * XqForkJoin.java
