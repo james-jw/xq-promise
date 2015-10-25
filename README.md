@@ -18,8 +18,8 @@ The main driver behind implementing the promise pattern was to realize ``paralle
 I want to give a quick thanks to the [BaseX][1] team for their wonder implementation of ``BaseX`` and ``XQuery``.
 It is because of their hard work, code samples, stellar architecture and code readability that this module was made possible! 
 
-## Version BETA
-This module is currently in Beta and should be used with caution especially in scenarios involving the
+## Version 0.6-BETA
+This module is currently in Beta and should be used with caution. Especially in scenarios involving the
 writing of sensitive data. 
 
 ## Dependencies
