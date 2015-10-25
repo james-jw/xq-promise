@@ -60,10 +60,10 @@ The signature may look daunting but the pattern is simple. Use the <code>defer</
 
 ```xquery
 import module namespace promise = 'org.basex.query.func.async.xq-promise';
-let $work := function($name) {
+let $greet := function($name) {
    'Hello ' || $name || '!'
 }
-let $promise := promise:defer($work, 'world')
+let $promise := promise:defer($greet, 'world')
 return
   $promise
 ```
