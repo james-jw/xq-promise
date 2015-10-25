@@ -111,15 +111,16 @@ public class XqDeferred extends FItem implements XQFunction {
       out = vb.value();
     } catch (Exception e) {
       failed = true;
+      notifyCallbacks(getCallbacks(XqPromise.always, ii), qc, ii, Str.get(e.getMessage()));
       out = notifyCallbacks(getCallbacks(XqPromise.fail, ii), qc, ii, args);
     }
 
     if(!failed) {
       out = processThen(out, qc, ii);
       notifyCallbacks(getCallbacks(XqPromise.done, ii), qc, ii, out);
+      notifyCallbacks(getCallbacks(XqPromise.always, ii), qc, ii, out);
     }
 
-    notifyCallbacks(getCallbacks(XqPromise.always, ii), qc, ii, out);
     return out;
   }
 
@@ -203,11 +204,7 @@ public class XqDeferred extends FItem implements XQFunction {
     ValueBuilder vb = new ValueBuilder();
     for(final Item item : handlers) {
       FItem funcItem = (FItem)item;
-      if(funcItem.arity() == 0) {
-        vb.add(invokeFunctionItem(funcItem,  qc, ii, XqPromise.empty.value()));
-      } else {
-        vb.add(invokeFunctionItem(funcItem, qc, ii, args));
-      }
+      vb.add(invokeFunctionItem(funcItem, qc, ii, args));
     }
 
     return vb.value();
