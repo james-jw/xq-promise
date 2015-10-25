@@ -10,7 +10,7 @@ import org.basex.util.*;
 
 /**
  * @author James Wright
- * Forks a set of tasks, performing their computation in parrallel followed by rejoining the results.
+ * Forks a set of tasks, performing their computation in parallel followed by rejoining the results.
  *
  */
 public class XqForkJoinTask extends RecursiveTask<Value> {
@@ -21,7 +21,7 @@ public class XqForkJoinTask extends RecursiveTask<Value> {
   @SuppressWarnings("javadoc")
   private InputInfo ii;
   /**
-   * Number of worker to compute per fork
+   * Number of workers to compute per fork
    */
   private int _computeSize;
 
@@ -45,27 +45,35 @@ public class XqForkJoinTask extends RecursiveTask<Value> {
   @Override
   protected Value compute() {
     ValueBuilder vb = new ValueBuilder();
+    List<FItem> myWork = new ArrayList<FItem>(_computeSize);
 
-    // My Work
-    if(work.size() <= _computeSize) {
-        try {
-          for(Item deferred : work) {
-            Value v = ((FItem)deferred).invokeValue(qc, ii, XqPromise.empty.value());
-            vb.add(v);
-          }
-       } catch(QueryException ex) {
-         Util.notExpected("Failed to process fork join", ex);
-       }
-
-       return vb.value();
+    // Determine my work
+    int i = 0;
+    for(Item chunk : work) {
+      myWork.add((FItem)chunk);
+      if(i++ == _computeSize - 1) {
+         break;
+      }
     }
 
-    // Have someone else do this work
-    XqForkJoinTask[] subtasks = splitRemainingWorkload();
+    // Let others start the remaining work
+    XqForkJoinTask[] subtasks = work.size() <= _computeSize
+        ? new XqForkJoinTask[0] : splitRemainingWorkload(i);
+
     for(XqForkJoinTask task : subtasks) {
       task.fork();
     }
 
+    // Perform my work
+    try {
+      for(FItem deferred : myWork) {
+        vb.add(deferred.invokeValue(qc, ii, XqPromise.empty.value()));
+      }
+    } catch(QueryException ex) {
+      Util.notExpected("Failed to process fork join", ex);
+    }
+
+    // Rejoin with the others.
     for(XqForkJoinTask task : subtasks) {
       try {
         vb.add(task.get());
@@ -77,21 +85,21 @@ public class XqForkJoinTask extends RecursiveTask<Value> {
     }
 
     return vb.value();
-}
+  }
 
   /**
    * @return The combined value of all the split operations results.
    */
-  private XqForkJoinTask[] splitRemainingWorkload() {
+  private XqForkJoinTask[] splitRemainingWorkload(int taken) {
     List<XqForkJoinTask> subtasks = new ArrayList<XqForkJoinTask>();
 
-    int length = Integer.parseInt(work.size() + "");
+    int length = Integer.parseInt(work.size() + "") - taken;
 
-    Value firstHalf = length == 1 ? work : work.subSeq(0, length/2  );
+    Value firstHalf = length == 1 ? work.subSeq(taken, 1) : work.subSeq(taken, length/2  );
     subtasks.add(new XqForkJoinTask(firstHalf, new QueryContext(qc), ii, XqPromise.empty.value()));
 
     if(length > 1) {
-      Value secondHalf = work.subSeq(length/2, length - (length/2));
+      Value secondHalf = work.subSeq(taken + length/2, length - (length/2));
       subtasks.add(new XqForkJoinTask(secondHalf, new QueryContext(qc), ii, XqPromise.empty.value()));
     }
 
