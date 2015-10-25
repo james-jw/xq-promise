@@ -105,7 +105,7 @@ Called if the action fails.
 A failure occurs if any deferred work or callback function throws an exception.
 
 ###### Mitigate the failure
-If this callback returns a value, or the empty sequence. The failure will disappear as though no error occurred, with the replaced value returned from the failure callback being used in the result. This is similar to how ``then`` works.
+If this callback returns a value. The failure will disappear as though no error occurred, with the replaced value returned from the failure callback being used in the result. This is similar to how ``then`` works.
 
 ###### Fail silently
 Alternatively, if the error should simply be ignored, the callback must return the ``empty-sequence``.
