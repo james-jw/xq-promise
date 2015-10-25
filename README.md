@@ -400,9 +400,10 @@ The XqPromise class implements [QueryModule][4] from the BaseX API and exposes t
 * defer
 * when
 * fork-join
+* is-promise
 
 #### XqDeferred
-This class is at the core of the [promise][1] pattern and represents a unit of work to perform in the future. It implements ``XQFunction`` interface from the [BaseX][1] API. and thus is a function. 
+This class is at the core of the [promise][1] pattern and represents a unit of work to perform in the future. It implements the ``XQFunction`` interface from the [BaseX][1] API. and thus is a function. 
 
 If passed an empty sequence, it executes its work.
 
