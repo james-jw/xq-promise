@@ -145,9 +145,9 @@ let $promise := promise:defer($request, 'http://www.google.com', map {
 return
   $promise(())
 ```
-Foremost, note the addition of a second ``then`` callback. Both of these will be called in order. The result of the firsts callback will be passed to the second. In this example, the result will be all of the ``a`` links in the document!
+Foremost, note the addition of a second ``then`` callback. Both of these will be called in order. The result of the first callback will be passed to the second. In this example, the result will be all of the ``a`` links in the document!
 
-Second, note the ``fail`` callback.  It uses the power of XQuery 3.0 and [function items][8] to simply add a trace call for when any part of the execution fails, how convenient!
+Second, note the ``fail`` callback.  It uses the power of XQuery 3.0 and [function items][8] to add a trace call for when any part of the execution fails, how convenient!
 
 Hopefully its starting to come clear how the ``promise`` pattern can be quite useful.
 
@@ -159,7 +159,7 @@ when($promises as function(map(*,function(*)),
    as function(map(*,function(*)))
 ```
 
-The purpose of  ``when`` is to combine 2 or more promised actions during execution. This is extremly powerful. Like the ``defer`` method disscussed earlier, the ``when`` method also returns a deferred ``promise`` itself and also, accepts callbacks just the same.
+The purpose of  ``when`` is to combine 2 or more promised actions during execution. This is extremly powerful. Like the ``defer`` method disscussed earlier, the ``when`` method also returns a deferred ``promise``, which accepts callbacks just the same.
 
 For example:
 ```xquery
@@ -183,7 +183,7 @@ We could continue to attach callbacks as needed until we are ready. There is no 
 
 #### Attach after creation
 So far, all the examples have attached ``callbacks`` during the call with ``defer`` or ``when`` ;however there is another, even more powerful way. 
-A ``promise`` can accept callbacks too!
+A ``promise`` itself, can accept callbacks aswell!
 
 For example:
 ```xquery
@@ -200,7 +200,7 @@ let $extract = $retrieve(map { 'then': $extractListItems  })
 return
    $extract(())
 ```
-Note how the $extractListItems callback is appended to the $retrieve ``promise`` resulting in a new promise ``$extract`` which when executing will initiated the full chain of callbacks!
+Note how the ``$extractListItems`` callback is appended to the $retrieve ``promise`` resulting in a new promise ``$extract`` which when executing will initiated the full chain of callbacks!
 
 #### is-promise
 The simple method can be used to deteremine if a function is a ``promise``.
