@@ -112,7 +112,7 @@ If the failure cannot be mitigated, throwing an exection using ``fn:error`` will
 Alternatively, If the error cannot be mitigated, but simply needs to be ignored, return the ``empty-sequence``.
 
 #### Adding callbacks
-There are two ways to add callbacks. During its creation, or after.
+There are two ways to add callbacks. During a ``promise's`` creation, or after.
 
 Lets see an example of the first case. Imagine we want to make a request using the standard ``http:send-request`` method and then extract the results in a single streamlined call. Here is how this could be accomplished using the <code>promise</code> pattern and a ``then`` callback:
 ```xquery
