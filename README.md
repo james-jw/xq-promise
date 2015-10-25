@@ -145,9 +145,9 @@ let $promise := promise:defer($request, 'http://www.google.com', map {
 return
   $promise(())
 ```
-Foremost, note the addition of a second ``then`` callback. Both of these will be called in order. The result of the first callback will be passed to the second. In this example, the result will be all of the ``a`` links in the document!
+Foremost, note the addition of a second ``then`` callback. Both of these will be called in order. The result of the first callback will be passed to the second. In this example, the result will be all the links in the document.
 
-Second, note the ``fail`` callback.  It uses the power of XQuery 3.0 and [function items][8] to add a trace call for when any part of the execution fails, how convenient!
+Second, note the ``fail`` callback.  It uses the power of XQuery 3.0 and [function items][8] to add a trace call when any part of the execution fails. How convenient!
 
 Hopefully its starting to come clear how the ``promise`` pattern can be quite useful.
 
@@ -200,13 +200,7 @@ let $extract = $retrieve(map { 'then': $extractListItems  })
 return
    $extract(())
 ```
-Note how the ``$extractListItems`` callback is appended to the $retrieve ``promise`` resulting in a new promise ``$extract`` which when executing will initiated the full chain of callbacks!
-
-#### is-promise
-The simple method can be used to deteremine if a function is a ``promise``.
-```xquery
-is-promise($func as item(*)) as xs:boolean
-```
+Note how the ``$extractListItems`` callback is appended to the $retrieve ``promise`` resulting in a new promise ``$extract`` which when executing will initiate the full chain of callbacks!
 
 ## The Power of Promises and Parallel Execution
 Hopefully its clear now: how to defer work for later execution, what a promise is, and how to join multiple promises. It still may not be entirely clear what the benefit this pattern has in the context of XQuery; however that is about to change.
@@ -389,6 +383,12 @@ return
 ```
 
 In this case, since the inner ``fork-join`` simply makes lots of external requests, this may actually improve execution time.
+
+#### is-promise
+Let me quickly introduuce one final method. It can be used to deteremine if a function is a ``promise``.
+```xquery
+is-promise($func as item(*)) as xs:boolean
+```
 
 ### Limitations
 With any async process their are limitations. So far these are the only noticed limitations:
