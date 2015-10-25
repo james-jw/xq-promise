@@ -108,7 +108,7 @@ Operates the same as ``done`` except its also called on the promises failure, no
 ##### fail
 Called if the action fails. A failure occurs if any deferred work or callback function throws an exception.
 
-If the callback returns a value, or the empty sequence, the failure disappear as though no error occurred, with the replaced value returned from the failure callback being used in the result. This is similar to how ``then`` works.
+If the callback returns a value, or the empty sequence. The the failure will disappear as though no error occurred, with the replaced value returned from the failure callback being used in the result. This is similar to how ``then`` works.
 
 If the failure cannot be mitigated, as just stated, throwing an exception within the callback using ``fn:error`` will cause the enitre fork and query to cease.
 
@@ -271,7 +271,7 @@ That is a clear advantage! Playing around with ``compute size`` and ``max forks`
 #### Interacting with shared resources
 With any async process comes the possibility of synchronization problems. Fortunately, XQuery due to its immutable nature is naturally suited to this type of work. Additionally from my limited look at BaseX, the code is very thread safe. Add to this, the introduction of the promise pattern and safe multi-threading appears to be real. 
 
-There are a few things to note however when using ``fork-join``:
+There are a few things to note however when using ``fork-join``
 
 ###### Never attempt to write to a database within a fork
 Luckily this does ``not`` restrict you from writing to databases, it just means: compute in forks, write after you have rejoined.
