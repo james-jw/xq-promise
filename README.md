@@ -114,7 +114,7 @@ Alternatively, if the error cannot be mitigated, but simply should be ignored, r
 #### Adding callbacks
 There are two ways to add callbacks. During a ``promise's`` creation, or after.
 
-Lets see an example of the first case. Imagine we want to make a request using the standard ``http:send-request`` method and then extract the results in a single streamlined call. Here is how this could be accomplished using the <code>promise</code> pattern and a ``then`` callback:
+Lets see an example of the first case. Imagine we want to make a request using the standard ``http:send-request`` method and then extract the body in a single streamlined pipeline. Here is how this could be accomplished using the <code>promise</code> pattern and a ``then`` callback:
 ```xquery
 let $req := <http:request method="GET" />
 let $request := http:send-request($req, ?)
