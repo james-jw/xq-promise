@@ -129,7 +129,7 @@ In this example, since the ``$extract-body's`` input will be the result of its p
 
 ##### Multiple Callbacks per event
 
-Additionally, multiple callbacks can be attached to each of one of the 4 events. For example:
+Additionally, multiple callbacks can be attached to each of the 4 events. For example:
 ```xquery
 (: same $req, etc.. from above :)
 let $extract-links := function ($res) { $res//a }
