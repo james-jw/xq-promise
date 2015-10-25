@@ -80,7 +80,9 @@ $promise(())
 ```
 The above modifcation will result in the expected answer: <code>Hello world!</code>
 
-Now you may be wondering about the <code>$promise(())</code> call. In particular the passing of the ``()`` empty sequence. By passing an empty sequence into the promises method we instruct it to exceute its work and return the results. The alternative is to pass in a map of callback functions: 
+Now you may be wondering about the <code>$promise(())</code> call. In particular the passing of the ``()`` empty sequence. 
+
+By passing an empty sequence into the promises method we instruct it to exceute its work and return the results. The alternative is to pass in a map of callback functions: 
 
 ### Callbacks
 In the above example we deferred a simple piece of work and then learned how to execute it at a later time by passing in the empty sequence. Now let me introduce the real power of the [promise][0] pattern with <code>callbacks</code>
@@ -116,7 +118,9 @@ Alternatively, if the error should simply be ignored, the callback must return t
 Ultimately, if the failure cannot be mitigated. Throwing an exception within the callback using ``fn:error`` will cause the enitre fork and query to cease.
 
 #### Adding callbacks
-There are two ways to add callbacks: during a promise's creation, or after.
+There are two ways to add callbacks: 
+* During a promise's creation
+* Or after.
 
 Lets see an example of the first case:
 
@@ -139,7 +143,7 @@ In this example, since the ``$extract-body's`` input will be the result of its p
 
 
 #### Attach after creation
-So far, all the examples have attached ``callbacks`` during the call with ``defer`` or ``when`` ;however there is another, even more powerful way. 
+So far, all the examples have attached ``callbacks`` during the call with ``defer``; however there is another, even more powerful way. 
 A ``promise`` itself, can accept callbacks aswell!
 
 For example:
@@ -157,11 +161,11 @@ let $extract = $retrieve(map { 'then': $extractListItems  })
 return
    $extract(())
 ```
-Note how the ``$extractListItems`` callback is appended to the ``$retrieve`` promise resulting in a new promise ``$extract``. Which, when executing will initiate the full chain of callbacks!
+Note how the ``$extractListItems`` callback is appended to the ``$retrieve`` promise, resulting in a new promise ``$extract``. Which, when executed will initiate the full chain of callbacks!
 
 ##### Multiple Callbacks per event
 
-Additionally, multiple callbacks can be attached to each of the 4 events. For example:
+Multiple callbacks, not just one, can be attached to each of the 4 events. For example:
 ```xquery
 (: same $req, etc.. from above :)
 let $extract-links := function ($res) { $res//a }
@@ -172,7 +176,7 @@ let $promise := promise:defer($request, 'http://www.google.com', map {
 return
   $promise(())
 ```
-Foremost, note the addition of a second ``then`` callback. Both of these will be called in order. The result of the first callback will be passed to the second. In this example, the result will be all the links in the document.
+Foremost, note the addition of a second ``then`` callback. Both of these will be called in order. The result of the first callback will be passed to the second. In this example, since ``then`` is a pipeline callback. The result will be all the links in the document.
 
 Second, note the ``fail`` callback.  It uses the power of XQuery 3.0 and [function items][8] to add a trace call when any part of the execution fails. How convenient!
 
@@ -204,7 +208,7 @@ return
     $users(()) ! trace(.?username, 'Retrieved: ')
 ```
 
-In this example we perform two deferred actions and then merge their results in the ``$write-and-return-users`` callback. Since this item is attached to the ``when's`` promise on the ``then`` callback, its result will be seen on the call to ``$users(())``.
+In this example, we perform two deferred actions and then merge their results in the ``$write-and-return-users`` callback. Since this item is attached to the ``when's`` promise on the ``then`` callback, its result will be seen on the call to ``$users(())``.
 
 We could continue to attach callbacks as needed until we are ready. There is no limit.
 
