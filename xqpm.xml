@@ -3,7 +3,7 @@
 <config name="org.jw.basex.async.xq-promse" abbrev="xq-promise" version="1.0">
   <dependencies>
     <directory path="{{lib}}">
-      <dependency name="xq-promise.jar" type="binary" path="https://github.com/james-jw/xq-promise/target/xq-promise-0.1-beta.jar" />
+      <dependency name="xq-promise.jar" type="binary" path="https://raw.githubusercontent.com/james-jw/xq-promise/master/lib/BaseX831.jar" />
     </directory>
   </dependencies>
 </config>
