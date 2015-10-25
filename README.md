@@ -48,7 +48,7 @@ In it's current iteration the library includes 4 methods with several overloads.
 * is-promise
 * fork-join
 
-### defer
+## defer
 ```xquery
 defer($work as function(*), 
       $arguments as item()*, 
@@ -85,10 +85,10 @@ In the above example we deferred a simple piece of work and then learned how to 
 
 A ``callback`` is a function which will be executed on the success or failure of some defered work. The available callback events to subscribe to are:
 
-##### then
+#### then
 This callback will be invoked upon success of the deferred execution. It acts as a pipeline function for transforming the response over successive callback executions. Unlike the next two events, but similar to ``fail``, this method can alter the pipeline result, and generally does.
 
-##### done
+#### done
 Called on success. 
 
 This method has no effect on the pipeline result and thus it's return value will be discared. Its main
@@ -96,10 +96,10 @@ purpose is for reacting to successful deferred execution as opposed to affecting
 
 A common use case for ``done`` is logging.
 
-##### always
+#### always
 Operates the same as ``done``, except it also is called on the promise's failure, not only success.
 
-##### fail
+#### fail
 Called if the action fails. 
 
 A failure occurs if any deferred work or callback function throws an exception.
@@ -135,6 +135,28 @@ In the above example we attached a ``then`` callback. This callback function has
 
 In this example, since the ``$extract-body's`` input will be the result of its parent ``promise``. The result will be the response body of the http request.
 
+
+#### Attach after creation
+So far, all the examples have attached ``callbacks`` during the call with ``defer`` or ``when`` ;however there is another, even more powerful way. 
+A ``promise`` itself, can accept callbacks aswell!
+
+For example:
+```xquery
+(: Same $worker, $req as above etc... :)
+let $extractListItems := function ($res as map(*)) { $res?list?* } 
+let $error := function ($result as item()*) {
+     trace($result, 'Request failed!') => prof:void()
+}
+let $retrieve := proc:defer($worker, ($req, $uri), map { 
+           'then': parse-json(?), 
+           'fail': $error 
+}) 
+let $extract = $retrieve(map { 'then': $extractListItems  })
+return
+   $extract(())
+```
+Note how the ``$extractListItems`` callback is appended to the $retrieve ``promise`` resulting in a new promise ``$extract`` which when executing will initiate the full chain of callbacks!
+
 ##### Multiple Callbacks per event
 
 Additionally, multiple callbacks can be attached to each of the 4 events. For example:
@@ -154,7 +176,7 @@ Second, note the ``fail`` callback.  It uses the power of XQuery 3.0 and [functi
 
 Hopefully its starting to come clear how the ``promise`` pattern can be quite useful.
 
-#### when
+### when
 Another critical method in the [promise][0] pattern is the ``when`` function.
 ```xquery
 when($promises as function(map(*,function(*)), 
@@ -183,27 +205,6 @@ return
 In this example we perform two deferred actions and then merge their results in the ``$write-and-return-users`` callback. Since this item is attached to the ``when's`` promise on the ``then`` callback, its result will be seen on the call to ``$users(())``.
 
 We could continue to attach callbacks as needed until we are ready. There is no limit.
-
-#### Attach after creation
-So far, all the examples have attached ``callbacks`` during the call with ``defer`` or ``when`` ;however there is another, even more powerful way. 
-A ``promise`` itself, can accept callbacks aswell!
-
-For example:
-```xquery
-(: Same $worker, $req as above etc... :)
-let $extractListItems := function ($res as map(*)) { $res?list?* } 
-let $error := function ($result as item()*) {
-     trace($result, 'Request failed!') => prof:void()
-}
-let $retrieve := proc:defer($worker, ($req, $uri), map { 
-           'then': parse-json(?), 
-           'fail': $error 
-}) 
-let $extract = $retrieve(map { 'then': $extractListItems  })
-return
-   $extract(())
-```
-Note how the ``$extractListItems`` callback is appended to the $retrieve ``promise`` resulting in a new promise ``$extract`` which when executing will initiate the full chain of callbacks!
 
 ## The Power of Promises and Parallel Execution
 Hopefully its clear now: how to defer work for later execution, what a promise is, and how to join multiple promises. It still may not be entirely clear what the benefit this pattern has in the context of XQuery; however that is about to change.
