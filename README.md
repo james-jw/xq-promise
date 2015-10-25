@@ -53,7 +53,7 @@ In it's current iteration the library includes 4 methods with several overloads.
 defer($work as function(*), 
       $arguments as item()*, 
       $callbacks as map(*,function(*))*) 
-  as function(map(xs:string,function(*)*))
+  as function(map(*,function(*)*))
 ```
 
 The signature may look daunting but the pattern is simple. Use the <code>defer</code> method to defer a piece of work for later execution by passing in a function item and the future arguments. Lets see how this works with an example:
