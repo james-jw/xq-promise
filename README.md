@@ -43,7 +43,6 @@ import module namespace promise = 'org.jw.basex.async.xq-promise';
 ## Whats included?
 In it's current iteration the library includes 4 methods with several overloads. The methods are as follows:
 
-#### Methods:
 * defer
 * when
 * is-promise
