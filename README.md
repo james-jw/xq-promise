@@ -33,9 +33,6 @@ Or use [xqpm][5] to do it for you:
 xqpm xq-promise
 ```
 
-Then import the
-`org.jw.basex.async.xq-promse` module into your scripts!
-
 ## Declaration
 To use the module in your scripts simple import it like so:
 
