@@ -9,13 +9,10 @@ The pattern resolves around the idea of <code>deferred</code> execution through 
 <code>deferred</code> object. When an action is deferred, it returns a function, known as <code>promise</code> which 
 when executed at a later time will perform and return the results of the work its deferring. 
 
-Additionally, with the <code>defer</code> and <code>promise</code> functions comes the ability to attach further processing at a later date, prior to actual execution via callback functions. This may sound confusing and hard to image; however, the examples below should hopefully make clearer.
+Additionally, with the <code>defer</code> and <code>promise</code> functions comes the ability to attach further processing at a later date, prior to actual execution via callback functions. This may sound confusing and hard to imagin; however, the examples below should hopefully make it clearer.
 
 ## Why?
 The main driver behind implementing the promise pattern was to realize <code>async</code> execution of XQuery code within a single query. If this sounds enticing, keep reading!
-
-In my initial testing, queries often execute in under 1/5, sometimes 1/10th the time as compared to without ``fork-join``.
-Take for example making 50 http requests. Without fork join, this takes upwards of 50 seconds, with 5.
 
 ## Thanks!
 I want to thank the [BaseX][1] team for their wonder implementation of ``XQuery`` and the BaseX system in general.
@@ -26,7 +23,7 @@ This module is currently in Beta and should be used with caution especially in s
 writing of sensitive data. 
 
 ## Dependencies
-This module is currently dependent on [Basex][1].
+This module is currently dependent on [BaseX][1].
 
 ## Installation
 Copy the ``xq-promise-x.jar`` into your ``basex\lib`` directory 
@@ -51,12 +48,13 @@ import module namespace promise = 'org.jw.basex.async.xq-promise';
 ```
 
 ## Whats included?
+In its current iteration the library includes 4 methods with several overloads. The methods are as follows:
+
 #### Methods:
 * defer
 * when
 * fork-join
-
-In its current iteration the library includes 3 methods with several overloads. The methods are as follows:
+* is-promise
 
 ### defer
 ```xquery
@@ -186,6 +184,12 @@ let $retrieve := proc:defer($worker, ($req, $uri), map {
 let $extract = $retrieve(map { 'then': $extractListItems  })
 return
    $retrieve(())
+```
+
+#### is-promise
+This simple method can be used to deteremine if a function is a ``promise``.
+```xquery
+is-promise($func as item(*))
 ```
 
 ## The Power of Async!
