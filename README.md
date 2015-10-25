@@ -9,7 +9,7 @@ The pattern resolves around the idea of <code>deferred</code> execution through 
 <code>deferred</code> object. When an action is deferred, it returns a function, known as <code>promise</code> which 
 when executed at a later time will perform and return the results of the work its deferring. 
 
-Additionally, with the <code>defer</code> and <code>promise</code> functions comes the ability to attach further processing at a later date, prior to actual execution via callback functions. This may sound confusing and hard to imagin; however, the examples below should hopefully make it clearer.
+Additionally, with the <code>defer</code> and <code>promise</code> functions comes the ability to attach further processing at a later date, prior to actual execution via callback functions. This may sound confusing and hard to imagine, but I promise the examples that follow will hopefully make clearer.
 
 ## Why?
 The main driver behind implementing the promise pattern was to realize <code>async</code> execution of XQuery code within a single query. If this sounds enticing, keep reading!
