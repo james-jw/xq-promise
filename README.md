@@ -129,7 +129,7 @@ return
 ```
 In the above example we attached a ``then`` callback. This callback function has the ability to transform the output of it's parent ``promise``. With this in the mind, it should be clear that the ``$extract-body``'s return value will be retuned at the call to ``$promise(())``. 
 
-In this example, since the ``$extract-body's`` input will be the result of its parent ``promise`` the result will simply be the response body of the http request.
+In this example, since the ``$extract-body's`` input will be the result of its parent ``promise``. The result will be the response body of the http request.
 
 ##### Multiple Callbacks per event
 
