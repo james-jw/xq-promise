@@ -5,7 +5,7 @@ An implementation of the promise and fork-join patterns for async processing in 
 This library implements the [promise][0] pattern as seen in many other languages and frameworks. 
 Most notably those in the javascript community, such as jQuery and Q.js. 
 
-The pattern resolves around the idea of <code>deferred</code> execution through what is often called a 
+The pattern resolves around the idea of deferred execution through what is often called a 
 <code>deferred</code> object. When an action is deferred, it returns a function, known as <code>promise</code> which 
 when executed at a later time will perform and return the results of the work its deferring. 
 
