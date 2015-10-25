@@ -86,7 +86,7 @@ $promise(())
 ```
 The above modifcation will result in the expected answer: <code>Hello world!</code>
 
-Now you may be wondering about the <code>$promise(())</code> call. In particular the passing of the ``()`` empty sequence. By passing an empty sequence into the promises method we instruct it to exceute its work and return the results. The alternative is to pass in a ``map(xs:string, function(*))`` of callbacks!
+Now you may be wondering about the <code>$promise(())</code> call. In particular the passing of the ``()`` empty sequence. By passing an empty sequence into the promises method we instruct it to exceute its work and return the results. The alternative is to pass in a map of callback functions: 
 
 ### Callbacks
 In the above example we deferred a simple piece of work and then learned how to execute it at a later time by passing in the empty sequence. Now let me introduce the real power of the [promise][0] pattern with <code>callbacks</code>
@@ -94,7 +94,7 @@ In the above example we deferred a simple piece of work and then learned how to 
 A ``callback`` is a function which will be executed on the success or failure of some defered work. The available callback events to subscribe to are:
 
 ##### then
-This callback is will be invoked upon success of the deferred execution. It acts as a pipeline function for transforming the response over successive callback executions. Unlike the next two events, but similar to ``fail``, this method can alter the pipeline result, and generally does.
+This callback will be invoked upon success of the deferred execution. It acts as a pipeline function for transforming the response over successive callback executions. Unlike the next two events, but similar to ``fail``, this method can alter the pipeline result, and generally does.
 
 ##### done
 Called on success. This method has no effect on the pipeline result. Thus its return value will be discared. Its main
