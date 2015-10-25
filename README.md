@@ -94,7 +94,7 @@ In the above example we deferred a simple piece of work and then learned how to 
 A ``callback`` is a function which will be executed on the success or failure of some defered work. The available callback events to subscribe to are:
 
 ##### then
-Called on success of a deferred exectuion. Acts a pipeline function for transforming response for successive callback attachements.
+Called on success of a deferred exectuion. It acts as a pipeline function for transforming data over successive callback executions. Unlike the next two events, but similar to ``faile``, this method can alter the pipeline result.
 
 ##### done
 Called on success. This method has no effect on the pipeline results and thus its return value will be discared. 
