@@ -111,7 +111,7 @@ Alternatively, If the error cannot be mitigated, but simply needs to be ignored,
 #### Adding callbacks
 There are two ways to add callbacks. During its creation, or after.
 
-Lets see an example of the first case. Imagine we want to make a request using the standard ``http:send-request`` method and then extract the results in a single streamlined call. Here is how this could be accomplished using <code>promises</code> pattern and attaching a ``then`` <code>callback</code>
+Lets see an example of the first case. Imagine we want to make a request using the standard ``http:send-request`` method and then extract the results in a single streamlined call. Here is how this could be accomplished using the <code>promise</code> pattern and a ``then`` callback:
 ```xquery
 let $req := <http:request method="GET" />
 let $request := http:send-request($req, ?)
@@ -120,11 +120,13 @@ let $promise := promise:defer($request, 'http://www.google.com', map { 'then': $
 return
   $promise(())
 ```
-In the above example we attached a ``then`` callback. As stated above, this function has the ability to transform the output of its parent ``promise``. With this in the mind it should be clear that the ``$extract-body`` methods return value will be realized on the call to ``$promise(())``. Since the ``$extract-body's`` input will be the result of its parent ``promise`` the result will simply be the response body of the http request.
+In the above example we attached a ``then`` This callback function has the ability to transform the output of its parent ``promise``. With this in the mind it should be clear that the ``$extract-body``'s return value will be retuned at the call to ``$promise(())``. 
 
-Multiple callbacks can be attached to one of the 4 events. For example:
+In this example, since the ``$extract-body's`` input will be the result of its parent ``promise`` the result will simply be the response body of the http request.
+
+Additionally, multiple callbacks, can be attached to each of one of the 4 events. For example:
 ```xquery
- ... same $req, etc.. from above ...
+(: same $req, etc.. from above :)
 let $extract-links := function ($res) { $res//a }
 let $promise := promise:defer($request, 'http://www.google.com', map { 
     'then': ($extract-body, $extract-links),
@@ -133,9 +135,9 @@ let $promise := promise:defer($request, 'http://www.google.com', map {
 return
   $promise(())
 ```
-Foremost, note the addition of a second ``then`` callback. These will be called in order and thus the result of the firsts callback will be passed to the seconds. In this example the result is all of the ``a`` links in the document!
+Foremost, note the addition of a second ``then`` callback. These will be called in order. The result of the firsts callback will be passed to the second. In this example, the result will be all of the ``a`` links in the document!
 
-Second, note the ``fail`` callback. In this case we used the power of XQuery 3.0 and function items to simply add a trace call if any part of the execution fails, how convenient!
+Second, note the ``fail`` callback.  It uses the power of XQuery 3.0 and [function items][8] to simply add a trace call for when any part of the execution fails, how convenient!
 
 Hopefully its starting to come clear how the ``promise`` pattern can be quite useful.
 
@@ -408,3 +410,4 @@ Happy forking!!
 [5]: 'https://github.com/james-jw/xqpm'
 [6]: 'https://www.linkedin.com/pub/james-wright/61/25a/101'
 [7]: 'https://github.com/james-jw'
+[8]: 'http://docs.basex.org/wiki/XQuery_3.0#Function_Items'
