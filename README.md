@@ -206,7 +206,7 @@ The simple method can be used to deteremine if a function is a ``promise``.
 is-promise($func as item(*)) as xs:boolean
 ```
 
-## The Power of Async!
+## The Power of Promises and Parallel Execution
 Hopefully its clear now: how to defer work for later execution, what a promise is, and how to join multiple promises. It still may not be entirely clear what the benefit this pattern has in the context of XQuery; however that is about to change.
 
 ### Fork-join
