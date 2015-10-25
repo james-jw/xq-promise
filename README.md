@@ -122,7 +122,9 @@ Lets see an example of the first case. Imagine we want to make a request using t
 let $req := <http:request method="GET" />
 let $request := http:send-request($req, ?)
 let $extract-body := function ($res) { $res[2] }
-let $promise := promise:defer($request, 'http://www.google.com', map { 'then': $extract-body })
+let $promise := promise:defer($request, 'http://www.google.com', map { 
+       'then': $extract-body 
+})
 return
   $promise(())
 ```
