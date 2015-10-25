@@ -7,7 +7,7 @@ Most notably those in the javascript community, such as jQuery and Q.js.
 
 The pattern resolves around the idea of deferred execution through what is often called a 
 <code>deferred</code> object. When an action is deferred, it returns a function, known as <code>promise</code> which 
-when executed at a later time will perform and return the results of the work its deferring. 
+when executed at a later time will perform and return the results of the work it is deferring. 
 
 Additionally, with the <code>defer</code> and <code>promise</code> functions comes the ability to attach further processing at a later date, prior to actual execution via callback functions. This may sound confusing and hard to imagine, but I promise the examples that follow will make it clearer.
 
@@ -48,7 +48,7 @@ import module namespace promise = 'org.jw.basex.async.xq-promise';
 ```
 
 ## Whats included?
-In its current iteration the library includes 4 methods with several overloads. The methods are as follows:
+In it's current iteration the library includes 4 methods with several overloads. The methods are as follows:
 
 #### Methods:
 * defer
@@ -79,7 +79,7 @@ In the above example, we defer the execution of the $work method until we return
 
 But wait! If you examine the output. The value returned is: <code>function (anonymous)#1</code>. This is not at all what we want.
 
-This is where the power of the promise pattern starts to be realized. Formost, as mentioned prior, a promise is a ``function``. To retrieve its value, it must be called:
+This is where the power of the promise pattern starts to be realized. Formost, as mentioned prior, a promise is a ``function``. To retrieve it's value, it must be called:
 
 ```xquery
 $promise(())
@@ -97,13 +97,15 @@ A ``callback`` is a function which will be executed on the success or failure of
 This callback will be invoked upon success of the deferred execution. It acts as a pipeline function for transforming the response over successive callback executions. Unlike the next two events, but similar to ``fail``, this method can alter the pipeline result, and generally does.
 
 ##### done
-Called on success. This method has no effect on the pipeline result. Thus its return value will be discared. Its main
+Called on success. 
+
+This method has no effect on the pipeline result and thus it's return value will be discared. Its main
 purpose is for reacting to successful deferred execution as opposed to affecting its outcome like ``then`` does.
 
 A common use case for ``done`` is logging.
 
 ##### always
-Operates the same as ``done`` except its also called on the promises failure, not just success.
+Operates the same as ``done`` except it is also called on the promises failure, not just success.
 
 ##### fail
 Called if the action fails. A failure occurs if any deferred work or callback function throws an exception.
@@ -128,7 +130,7 @@ let $promise := promise:defer($request, 'http://www.google.com', map {
 return
   $promise(())
 ```
-In the above example we attached a ``then`` callback. This callback function has the ability to transform the output of its parent ``promise``. With this in the mind it should be clear that the ``$extract-body``'s return value will be retuned at the call to ``$promise(())``. 
+In the above example we attached a ``then`` callback. This callback function has the ability to transform the output of it's parent ``promise``. With this in the mind, it should be clear that the ``$extract-body``'s return value will be retuned at the call to ``$promise(())``. 
 
 In this example, since the ``$extract-body's`` input will be the result of its parent ``promise`` the result will simply be the response body of the http request.
 
@@ -305,7 +307,7 @@ Its important to note that all callbacks will be executed in the fork they origi
 If you attached an additional callback after ``$compute``, it too would execute in its origin fork, and not the master thread. Amazing!
 
 In regards to database access, or any resources for that matter. Notice how I ensure to only open one database per fork. 
-Although this is not a strict limitation its a recommendation.
+Although this is not a strict limitation it is a recommendation.
 
 As an alternative, queue up the large resource prior to the ``fork-join`` and use it in the callbacks:
 ```xquery
@@ -364,7 +366,7 @@ promse:fork-join($promises as function(*,map(*)),
 ##### Fork in Fork?
 Why not?! You may wonder if you can fork in a forked callback. The answer is YES! Generally this would not be advised however in certain 
 scenarios this is beneficial. Since all fork-joins share the same pool, inner forks merely ensure every thread is
-used to its maximum. However with anything, too many can be detrimental and is dependent on the type of work being performed.  
+used to it's maximum. However with anything, too many can be detrimental and is dependent on the type of work being performed.  
 
  Here is an example:
 
@@ -411,10 +413,10 @@ The XqPromise class implements [QueryModule][4] from the BaseX API and exposes t
 #### XqDeferred
 This class is at the core of the [promise][1] pattern and represents a unit of work to perform in the future. It implements the ``XQFunction`` interface from the [BaseX][1] API. and thus is a function. 
 
-If passed an empty sequence, it executes its work.
+If passed an empty sequence, it executes it's work.
 
 If provided a map of callback functions, the callbacks are added but no execution is performed. The return value
-is a new deferred which will include the added callback in its pipeline.
+is a new deferred which will include the added callback in it's pipeline.
 
 #### XqForkJoinTask
 Implements [RecursiveTask][3] and performs the forking process leveraging a fixed [ForkJoinPool][2]
