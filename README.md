@@ -67,9 +67,11 @@ let $promise := promise:defer($greet, 'world')
 return
   $promise
 ```
-In the above example, we defer the execution of the $work method until we return <code>$promise</code>. Upon execution of the code we should see ``hello world!``.
+In the above example, we defer the execution of the ``$greet`` method until we return <code>$promise</code>. Upon execution of the final line we should see ``hello world!``.
 
-But wait! If you examine the output. The value returned is: <code>function (anonymous)#1</code>. This is not at all what we want.
+But wait! 
+
+If you examine the output. The value returned is: <code>function (anonymous)#1</code>. This is not at all what we want.
 
 This is where the power of the promise pattern starts to be realized. Formost, as mentioned prior, a promise is a ``function``. To retrieve it's value, it must be called:
 
