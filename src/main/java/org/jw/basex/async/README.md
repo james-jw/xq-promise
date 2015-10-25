@@ -24,3 +24,13 @@ is a new deferred which will include the added callback in it's pipeline.
 Implements [RecursiveTask][3] and performs the forking process leveraging a fixed [ForkJoinPool][2]
 
 The pool size is deteremined by default by the number of CPU cores. See the Advanced section for overriding this.
+
+[0]: https://www.promisejs.org/patterns/
+[1]: http://www.basex.org
+[2]: https://docs.oracle.com/javase/tutorial/essential/concurrency/forkjoin.html
+[3]: https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/RecursiveTask.html
+[4]: http://docs.basex.org/javadoc/org/basex/query/QueryModule.html
+[5]: https://github.com/james-jw/xqpm
+[6]: https://www.linkedin.com/pub/james-wright/61/25a/101
+[7]: https://github.com/james-jw
+[8]: http://docs.basex.org/wiki/XQuery_3.0#Function_Items
