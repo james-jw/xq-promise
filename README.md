@@ -393,7 +393,7 @@ With any async process their are limitations. So far these are the only noticed 
 This library is implemented for [BaseX][1] via the [QueryModule][4] class. It leverages Jave 7's [ForkJoinPool][2] and [RecursiveTasks][3] classes and patterns. There are three ``java`` source files as part of the implementation:
 * XqPromise.java
 * XqDeferred.java
-* XqForkJoin.java
+* XqForkJoinTask.java
 
 #### XqPromise
 The XqPromise class implements [QueryModule][4] from the BaseX API and exposes the methods described earlier:
@@ -404,9 +404,10 @@ The XqPromise class implements [QueryModule][4] from the BaseX API and exposes t
 #### XqDeferred
 This class is at the core of the [promise][1] pattern and represents a unit of work to perform in the future. It implements ``XQFunction`` interface from the [BaseX][1] API. and thus is a function. 
 
-If passed a empty sequence, it executes its work.
+If passed an empty sequence, it executes its work.
 
-If provided a map of callback functions, the callbacks are added but no execution is performed.
+If provided a map of callback functions, the callbacks are added but no execution is performed. The return value
+is a new deferred which will include the added callback in its pipeline.
 
 #### XqForkJoinTask
 Implements [RevursiveTask][3] and performs the forking processing leveraging a fixed [ForkJoinPool][2]
