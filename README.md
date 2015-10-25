@@ -97,7 +97,10 @@ A ``callback`` is a function which will be executed on the success or failure of
 This callback is will be invoked upon success of the deferred execution. It acts as a pipeline function for transforming the response over successive callback executions. Unlike the next two events, but similar to ``fail``, this method can alter the pipeline result, and generally does.
 
 ##### done
-Called on success. This method has no effect on the pipeline results and thus its return value will be discared. 
+Called on success. This method has no effect on the pipeline result. Thus its return value will be discared. Its main
+purpose is for reacting to successful deferred execution as opposed to affecting its outcome like ``then`` does.
+
+A common use case for ``done`` is logging.
 
 ##### always
 Operates the same as ``done`` except its also called on the promises failure, not just success.
