@@ -2,16 +2,19 @@
 An implementation of the promise pattern, as well as fork-join async processing for XQuery 3.1
 
 ## What is it?
-This library to implement the [promise][0] pattern as seen in many other languages and frameworks. Most notably those in the javascript community. 
+This library implements the [promise][0] pattern as seen in many other languages and frameworks. 
+Most notably those in the javascript community, such as jQuery and Q.js. 
 
-The pattern resolves around the idea of <code>deferred</code> execution through what is often called a <code>defer</code> object. When an action is deferred, it returns a function, known as <code>promise</code> that when executed at a later time will perform and return the results of the work it deferred. 
+The pattern resolves around the idea of <code>deferred</code> execution through what is often called a 
+<code>deferred</code> object. When an action is deferred, it returns a function, known as <code>promise</code> which 
+when executed at a later time will perform and return the results of the work its deferring. 
 
 Additionally, with the <code>defer</code> and <code>promise</code> functions comes the ability to attach further processing at a later date, prior to actual execution via callback functions. This may sound confusing and hard to image; however, the examples below should hopefully make clearer.
 
 ## Why?
 The main driver behind implementing the promise pattern was to realize <code>async</code> execution of XQuery code within a single query. If this sounds enticing, keep reading!
 
-In my initial testing, many queries execute in under 1/5 sometimes, 1/10th the time.
+In my initial testing, queries often execute in under 1/5, sometimes 1/10th the time as compared to without ``fork-join``.
 Take for example making 50 http requests. Without fork join, this takes upwards of 50 seconds, with 5.
 
 ## Thanks!
@@ -23,7 +26,7 @@ This module is currently in Beta and should be used with caution especially in s
 writing of sensitive data. 
 
 ## Dependencies
-This is currently dependent on [Basex][1] and is not implementation agnostic.
+This module is currently dependent on [Basex][1].
 
 ## Installation
 Copy the ``xq-promise-x.jar`` into your ``basex\lib`` directory 
