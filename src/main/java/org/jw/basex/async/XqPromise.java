@@ -76,10 +76,7 @@ public class XqPromise extends QueryModule  {
   }
 
   public Value forkJoin(final Value deferreds) throws QueryException {
-    ValueBuilder vb = new ValueBuilder();
-    XqForkJoinTask task = new XqForkJoinTask(deferreds, 2, new QueryContext(queryContext), null, vb.value());
-    Value out = pool.invoke(task);
-    return out;
+    return forkJoin(deferreds, 2); 
   }
 
   /**
@@ -91,8 +88,7 @@ public class XqPromise extends QueryModule  {
   public Value forkJoin(final Value deferreds, Int workSplit) throws QueryException {
     ValueBuilder vb = new ValueBuilder();
     XqForkJoinTask task = new XqForkJoinTask(deferreds, Integer.parseInt(workSplit.toString() + ""), new QueryContext(queryContext), null, vb.value());
-    Value out = pool.invoke(task);
-    return out;
+    return pool.invoke(task);
   }
 
   /**
