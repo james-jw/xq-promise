@@ -1,5 +1,5 @@
 # xq-promise
-An implementation of the promise and fork-join patterns for async processing in ``XQuery 3.1`` and in particularly the [BaseX][1] implementation.
+An implementation of the promise and fork-join patterns for async processing in ``XQuery 3.1`` with [BaseX][1].
 
 ## What is it?
 This library implements the [promise][0] pattern as seen in many other languages and frameworks. 
