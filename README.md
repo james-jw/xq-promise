@@ -15,8 +15,8 @@ Additionally, with the <code>defer</code> and <code>promise</code> functions com
 The main driver behind implementing the promise pattern was to realize ``parallel`` execution of XQuery code within a single query. If this sounds enticing, keep reading!
 
 ## Thanks!
-I want give a quick thanks the [BaseX][1] team for their wonder implementation of ``XQuery`` and the BaseX system in general.
-It is because of their hard work, great documentation, code samples and stellar, architecture, code quality and readability that this module was made possible! 
+I want to give a quick thanks to the [BaseX][1] team for their wonder implementation of ``BaseX`` and ``XQuery``.
+It is because of their hard work, code samples, stellar architecture and code readability that this module was made possible! 
 
 ## Version BETA
 This module is currently in Beta and should be used with caution especially in scenarios involving the
