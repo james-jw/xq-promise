@@ -26,7 +26,7 @@
       <artifactId>basex-parent</artifactId>
       <version>8.3.1-SNAPSHOT</version>
       <scope>system</scope>
-      <systemPath>C:\Users\SESA221445\workspace\xq-promise\lib\BaseX831.jar</systemPath>
+      <systemPath>./lib/BaseX831.jar</systemPath>
     </dependency>
   </dependencies>
   <organization>
