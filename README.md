@@ -114,11 +114,11 @@ Alternatively, if the error should simply be ignored, the callback must return t
 Ultimately, if the failure cannot be mitigated. Throwing an exception within the callback using ``fn:error`` will cause the enitre fork and query to cease.
 
 #### Adding callbacks
-There are two ways to add callbacks: during a ``promise's`` creation, or after.
+There are two ways to add callbacks: during a promise's creation, or after.
 
 Lets see an example of the first case:
 
-Imagine we want to make a request using the standard ``http:send-request`` method and then extract the body in a single streamlined ``callback`` pipeline.
+Imagine we want to make a request using the standard ``http:send-request`` method and then extract the body in a single streamlined callback pipeline.
 
 Here is how this could be accomplished using the <code>promise</code> pattern and a ``then`` callback:
 ```xquery
