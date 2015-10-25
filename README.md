@@ -79,14 +79,14 @@ In the above example, we defer the execution of the $work method until we return
 
 But wait! If you examine the output in [basex][1]. The value returned is: <code>function (anonymous)#1</code>. This is not at all what we want.
 
-This is where the power of the promise pattern starts to be realized. Formost, a mentioned prior, a promise '`is`' a function. To retrieve its value, it must be called:
+This is where the power of the promise pattern starts to be realized. Formost, as mentioned prior, a promise is a ``function``. To retrieve its value, it must be called:
 
 ```xquery
 $promise(())
 ```
 The above modifcation will result in the expected answer: <code>Hello world!</code>
 
-Now you may be wondering about the <code>$promise(())</code>, in particular the passing of the ``()`` empty sequence. By passing an empty sequence into the promises method we instruct it to exceute its work and return the results. The alternative is to pass in a ``map(xs:string, function(*))`` of callbacks!
+Now you may be wondering about the <code>$promise(())</code> call. In particular the passing of the ``()`` empty sequence. By passing an empty sequence into the promises method we instruct it to exceute its work and return the results. The alternative is to pass in a ``map(xs:string, function(*))`` of callbacks!
 
 ### Callbacks
 In the above example we deferred a simple piece of work and then learned how to execute it at a later time by passing in the empty sequence. Now let me introduce the real power of the [promise][0] pattern with <code>callbacks</code>
@@ -97,13 +97,16 @@ A ``callback`` is a function which will be executed on the success or failure of
 Called on success of a deferred exectuion. Acts a pipeline function for transforming response for successive callback attachements.
 
 ##### done
-Called on success. Has not affect on response
+Called on success. This method has no effect on the pipeline results and thus its return value will be discared. 
 
 ##### always
-Same as done, but also called on failure
+Operates the same as ``done`` except its also called on the promises failure, not just success.
 
 ##### fail
-Called if the action fails. Returning a result mitigates the failure while throwing an exception propegates it.
+Called if the action fails. Returning a value will result in the execution continuing as normal with the replaced value. 
+
+If the failure cannot be mitigated, throwing an exection using ``fn:error`` will cause the enitre fork and query to cease.
+Alternatively, If the error cannot be mitigated, but simply needs to be ignored, return the ``empty-sequence``.
 
 #### Adding callbacks
 There are two ways to add callbacks. During its creation, or after.
