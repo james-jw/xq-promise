@@ -106,10 +106,10 @@ A common use case for ``done`` is logging.
 Operates the same as ``done`` except its also called on the promises failure, not just success.
 
 ##### fail
-Called if the action fails. Returning a value will result in the execution continuing as normal with the replaced value. 
+Called if the action fails. Returning a value will result in the execution continuing as normal with the replaced value. This is similar to how ``then`` works.
 
 If the failure cannot be mitigated, throwing an exection using ``fn:error`` will cause the enitre fork and query to cease.
-Alternatively, If the error cannot be mitigated, but simply needs to be ignored, return the ``empty-sequence``.
+Alternatively, if the error cannot be mitigated, but simply should be ignored, return the ``empty-sequence``.
 
 #### Adding callbacks
 There are two ways to add callbacks. During a ``promise's`` creation, or after.
