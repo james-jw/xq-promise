@@ -97,12 +97,14 @@ purpose is for reacting to successful deferred execution as opposed to affecting
 A common use case for ``done`` is logging.
 
 ##### always
-Operates the same as ``done`` except it is also called on the promises failure, not just success.
+Operates the same as ``done``, except it also is called on the promise's failure, not only success.
 
 ##### fail
-Called if the action fails. A failure occurs if any deferred work or callback function throws an exception.
+Called if the action fails. 
 
-If this callback returns a value, or the empty sequence. The the failure will disappear as though no error occurred, with the replaced value returned from the failure callback being used in the result. This is similar to how ``then`` works.
+A failure occurs if any deferred work or callback function throws an exception.
+
+If this callback returns a value, or the empty sequence. The failure will disappear as though no error occurred, with the replaced value returned from the failure callback being used in the result. This is similar to how ``then`` works.
 
 If the failure cannot be mitigated. Throwing an exception within the callback using ``fn:error`` will cause the enitre fork and query to cease.
 
