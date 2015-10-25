@@ -272,7 +272,7 @@ There are a few things to note however when using ``fork-join``:
 
 ###### Never attempt to write to a database within a fork
 Luckily this does ``not`` restrict you from writing to databases, it just means: compute in forks, write after you have rejoined.
-Fortunately you can be sure anything returned from the ``fork-join`` operation was returned on the main thread and thus is safe! 
+Fortunately you can be sure everything returned from the ``fork-join`` operation is returned on the main thread and thus is safe! 
 
 For example:
 ```xquery
