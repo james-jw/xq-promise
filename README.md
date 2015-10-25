@@ -105,7 +105,7 @@ Called if the action fails. A failure occurs if any deferred work or callback fu
 
 If the callback returns a value, or the empty sequence. The the failure will disappear as though no error occurred, with the replaced value returned from the failure callback being used in the result. This is similar to how ``then`` works.
 
-If the failure cannot be mitigated, as just stated, throwing an exception within the callback using ``fn:error`` will cause the enitre fork and query to cease.
+If the failure cannot be mitigated. Throwing an exception within the callback using ``fn:error`` will cause the enitre fork and query to cease.
 
 Alternatively, if the error should simply be ignored, the callback should return the ``empty-sequence``.
 
