@@ -76,7 +76,7 @@ public class XqPromise extends QueryModule  {
   }
 
   public Value forkJoin(final Value deferreds) throws QueryException {
-    return forkJoin(deferreds, 2); 
+    return forkJoin(deferreds, Int.get(2)); 
   }
 
   /**
