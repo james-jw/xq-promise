@@ -34,11 +34,7 @@ xqpm xq-promise
 ```
 
 Then import the
-``org.jw.basex.async.xq-promse` module into your scripts!
-
-
-## Tests
-Clone the repo and run ``basex -t`` within the repo's directory to run the unit tests.
+`org.jw.basex.async.xq-promse` module into your scripts!
 
 ## Declaration
 To use the module in your scripts simple import it like so:
@@ -422,6 +418,9 @@ is a new deferred which will include the added callback in it's pipeline.
 Implements [RecursiveTask][3] and performs the forking process leveraging a fixed [ForkJoinPool][2]
 
 The pool size is deteremined by default by the number of CPU cores. See the Advanced section for overriding this.
+
+## Unit Tests
+Clone the repo and run ``basex -t`` within the repo's directory to run the unit tests.
 
 ### Shout Out!
 If you like what you see here please star the repo and follow me on [github][7] or [linkedIn][6]
