@@ -53,14 +53,14 @@ In its current iteration the library includes 4 methods with several overloads. 
 #### Methods:
 * defer
 * when
-* fork-join
 * is-promise
+* fork-join
 
 ### defer
 ```xquery
 defer($work as function(*), 
       $arguments as item()*, 
-      map(xs:string,function(*)*)?) 
+      $callbacks as map(*,function(*))*) 
   as function(map(xs:string,function(*)*))
 ```
 
@@ -149,9 +149,9 @@ Hopefully its starting to come clear how the ``promise`` pattern can be quite us
 #### when
 Another critical method in the [promise][0] pattern is the ``when`` function.
 ```xquery
-when($promises as function(map(xs:string,function(*)), 
-     $callbacks as map(*,function(*))) 
-     as function(map(*,function(*)))
+when($promises as function(map(*,function(*)), 
+     $callbacks as map(*,function(*))*) 
+   as function(map(*,function(*)))
 ```
 
 The purpose of  ``when`` is to combine 2 or more promised actions during execution. This is extremly powerful. Like the ``defer`` method disscussed earlier, the ``when`` method also returns a deferred ``promise`` itself and also, accepts callbacks just the same.
@@ -357,7 +357,7 @@ Here is the complete signature:
 ```xquery
 promse:fork-join($promises as function(*,map(*)), 
                  $compute-size as xs:integer?, 
-                 $max-forks as xs:integer) 
+                 $max-forks as xs:integer?) 
              as item()*
 ```
 
