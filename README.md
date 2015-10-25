@@ -6,10 +6,10 @@ This library implements the [promise][0] pattern as seen in many other languages
 Most notably those in the javascript community, such as jQuery and Q.js. 
 
 The pattern resolves around the idea of deferred execution through what is often called a 
-<code>deferred</code> object. When an action is deferred, it returns a function, known as <code>promise</code> which 
-when executed at a later time will perform and return the results of the work it is deferring. 
+<code>deferred</code> object. When an action is deferred, it returns a function, known as <code>promise</code> that 
+when executed, at a later time, will perform and return the results of the work it deferred. 
 
-Additionally, with the <code>defer</code> and <code>promise</code> functions, comes the ability to attach further processing at a later date but prior to actual execution, via callback functions. This may sound confusing and hard to imagine, but I promise the examples that follow will make it clearer.
+Since the work is deferred and can be executed at an arbitrary time there comes the ability to attach further processing at a later date but prior to actual execution, via callback functions. This may sound confusing and hard to imagine, but I promise the examples that follow will make it clearer.
 
 ## Why?
 The main driver behind implementing the promise pattern was to realize ``parallel`` execution of XQuery code within a single query. If this sounds enticing, keep reading!
