@@ -104,11 +104,14 @@ Called if the action fails.
 
 A failure occurs if any deferred work or callback function throws an exception.
 
+###### Mitigate the failure
 If this callback returns a value, or the empty sequence. The failure will disappear as though no error occurred, with the replaced value returned from the failure callback being used in the result. This is similar to how ``then`` works.
 
-If the failure cannot be mitigated. Throwing an exception within the callback using ``fn:error`` will cause the enitre fork and query to cease.
+###### Fail silently
+Alternatively, if the error should simply be ignored, the callback must return the ``empty-sequence``.
 
-Alternatively, if the error should simply be ignored, the callback should return the ``empty-sequence``.
+###### Fail miserably
+Ultimately, if the failure cannot be mitigated. Throwing an exception within the callback using ``fn:error`` will cause the enitre fork and query to cease.
 
 #### Adding callbacks
 There are two ways to add callbacks: during a ``promise's`` creation, or after.
