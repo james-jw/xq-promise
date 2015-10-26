@@ -33,7 +33,7 @@ To use the module in your scripts simple import it like so:
 import module namespace promise = 'org.jw.basex.async.xq-promise';
 ```
 
-### Version 0.6-BETA
+### Version 0.7-BETA
 This module is currently in Beta and should be used with caution. Especially in scenarios involving the
 writing of sensitive data. 
 
