@@ -33,7 +33,7 @@ To use the module in your scripts simple import it like so:
 import module namespace promise = 'org.jw.basex.async.xq-promise';
 ```
 
-### Version 0.6-BETA
+### Version 0.7-BETA
 This module is currently in Beta and should be used with caution. Especially in scenarios involving the
 writing of sensitive data. 
 
@@ -412,7 +412,7 @@ If you like what you see here please star the repo and follow me on [github][7] 
 
 Happy forking!!
 
-[0]: https://www.promisejs.org/patterns/
+[0]: https://api.jquery.com/category/deferred-object/
 [1]: http://www.basex.org
 [2]: https://docs.oracle.com/javase/tutorial/essential/concurrency/forkjoin.html
 [3]: https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/RecursiveTask.html
