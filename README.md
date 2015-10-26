@@ -412,7 +412,7 @@ If you like what you see here please star the repo and follow me on [github][7] 
 
 Happy forking!!
 
-[0]: https://www.promisejs.org/patterns/
+[0]: https://api.jquery.com/category/deferred-object/
 [1]: http://www.basex.org
 [2]: https://docs.oracle.com/javase/tutorial/essential/concurrency/forkjoin.html
 [3]: https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/RecursiveTask.html
