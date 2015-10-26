@@ -1,6 +1,40 @@
 # xq-promise
 An implementation of the promise and fork-join patterns for async processing in ``XQuery 3.1`` with [BaseX][1].
 
+   * [What is it?](#what-is-it)
+   * [Why?](#why)
+   * [Thanks!](#thanks)
+   * [Installation](#installation)
+     * [Declaration](#declaration)
+     * [Version 0.7-BETA](#version-07-beta)
+     * [Dependencies](#dependencies)
+   * [The Basics of a Promise](#the-basics-of-a-promise)
+     * [defer](#defer)
+       * [Callbacks](#callbacks)
+         * [then](#then)
+         * [done](#done)
+         * [always](#always)
+         * [fail](#fail)
+       * [Adding callbacks](#adding-callbacks)
+         * [Before Creation](#before-creation)
+         * [After creation](#after-creation)
+         * [Multiple Callbacks per event](#multiple-callbacks-per-event)
+     * [when](#when)
+   * [The Power of Promises and Parallel Execution](#the-power-of-promises-and-parallel-execution)
+     * [fork-join](#fork-join)
+       * [How to interact with shared resources](#how-to-interact-with-shared-resources)
+           * [Never attempt to write to a database within a fork](#never-attempt-to-write-to-a-database-within-a-fork)
+           * [Do not open disc resources (databases, files) from multiple forks.](#do-not-open-disc-resources-databases-files-from-multiple-forks)
+         * [Other words of caution!](#other-words-of-caution)
+       * [Advanced Forking](#advanced-forking)
+         * [Compute size](#compute-size)
+         * [Max forks](#max-forks)
+         * [Fork in Fork?](#fork-in-fork)
+     * [is-promise](#is-promise)
+   * [Limitations](#limitations)
+   * [Unit Tests](#unit-tests)
+   * [Shout Out!](#shout-out)
+
 ## What is it?
 This library implements the [promise][0] pattern as seen in many other languages and frameworks. 
 Most notably those in the javascript community, such as jQuery and Q.js. 
@@ -40,7 +74,7 @@ writing of sensitive data.
 ### Dependencies
 This module is dependent on [BaseX][1].
 
-## Whats included?
+## The Basics of a Promise 
 In it's current iteration the library includes 4 methods with several overloads. The methods are as follows:
 
 * defer
@@ -48,7 +82,7 @@ In it's current iteration the library includes 4 methods with several overloads.
 * is-promise
 * fork-join
 
-## defer
+### defer
 ```xquery
 defer($work as function(*), 
       $arguments as item()*, 
@@ -84,15 +118,15 @@ Now you may be wondering about the <code>$promise(())</code> call. In particular
 
 By passing an empty sequence into the promises method we instruct it to exceute its work and return the results. The alternative is to pass in a map of callback functions: 
 
-### Callbacks
+#### Callbacks
 In the above example we deferred a simple piece of work and then learned how to execute it at a later time by passing in the empty sequence. Now let me introduce the real power of the [promise][0] pattern with <code>callbacks</code>
 
 A ``callback`` is a function which will be executed on the success or failure of some defered work. The available callback events to subscribe to are:
 
-#### then
+##### then
 This callback will be invoked upon success of the deferred execution. It acts as a pipeline function for transforming the response over successive callback executions. Unlike the next two events, but similar to ``fail``, this method can alter the pipeline result, and generally does.
 
-#### done
+##### done
 Called on success. 
 
 This method has no effect on the pipeline result and thus it's return value will be discared. Its main
@@ -100,28 +134,29 @@ purpose is for reacting to successful deferred execution as opposed to affecting
 
 A common use case for ``done`` is logging.
 
-#### always
+##### always
 Operates the same as ``done``, except it also is called on the promise's failure, not only success.
 
-#### fail
+##### fail
 Called if the action fails. 
 
 A failure occurs if any deferred work or callback function throws an exception.
 
-###### Mitigate the failure
-If this callback returns a value. The failure will disappear as though no error occurred, with the replaced value returned from the failure callback being used in the result. This is similar to how ``then`` works.
-
-###### Fail silently
+* Mitigate the failure
+If this callback returns a value. The failure will disappear as though no error occurred, 
+with the replaced value returned from the failure callback being used in the result. 
+This is similar to how ``then`` works.
+* Fail silently
 Alternatively, if the error should simply be ignored, the callback must return the ``empty-sequence``.
-
-###### Fail miserably
+* Fail miserably
 Ultimately, if the failure cannot be mitigated. Throwing an exception within the callback using ``fn:error`` will cause the enitre fork and query to cease.
 
 #### Adding callbacks
 There are two ways to add callbacks: 
 * During a promise's creation
-* Or after.
+* Before a promise's creation
 
+##### Before Creation
 Lets see an example of the first case:
 
 Imagine we want to make a request using the standard ``http:send-request`` method and then extract the body in a single streamlined callback pipeline.
@@ -141,8 +176,7 @@ In the above example we attached a ``then`` callback. This callback function has
 
 In this example, since the ``$extract-body's`` input will be the result of its parent ``promise``. The result will be the response body of the http request.
 
-
-#### Attach after creation
+##### After creation
 So far, all the examples have attached ``callbacks`` during the call with ``defer``; however there is another, even more powerful way. 
 A ``promise`` itself, can accept callbacks aswell!
 
@@ -215,7 +249,7 @@ We could continue to attach callbacks as needed until we are ready. There is no 
 ## The Power of Promises and Parallel Execution
 Hopefully its clear now: how to defer work for later execution, what a promise is, and how to join multiple promises. It still may not be entirely clear what the benefit this pattern has in the context of XQuery; however that is about to change.
 
-### Fork-join
+### fork-join
 
 Let me introduce one last method, and the whole reason I wrote this library.
 
@@ -274,7 +308,7 @@ On my machine, the first example without ``fork-join`` took on average 55 second
 
 That is a clear advantage! Playing around with ``compute size`` and ``max forks``, which I will introduce shortly, I have been able to get this even lower, to around 2 seconds!!
 
-#### Interacting with shared resources
+#### How to interact with shared resources
 With any async process comes the possibility of synchronization problems. Fortunately, XQuery due to its immutable nature is naturally suited to this type of work. Additionally from my limited look at BaseX, the code is very thread safe. Add to this, the introduction of the promise pattern and safe multi-threading appears to be real. 
 
 There are a few things to note however when using ``fork-join``
@@ -394,20 +428,20 @@ return
 
 In this case, since the inner ``fork-join`` simply makes lots of external requests, this may actually improve execution time.
 
-#### is-promise
+### is-promise
 Let me quickly introduuce one final method. It can be used to deteremine if a function is a ``promise``.
 ```xquery
 is-promise($func as item(*)) as xs:boolean
 ```
 
-### Limitations
+## Limitations
 With any async process their are limitations. So far these are the only noticed limitations:
 * Updating database nodes in a callback
 
 ## Unit Tests
 Clone the repo and run ``basex -t`` within the repo's directory to run the unit tests.
 
-### Shout Out!
+## Shout Out!
 If you like what you see here please star the repo and follow me on [github][7] or [linkedIn][6]
 
 Happy forking!!
