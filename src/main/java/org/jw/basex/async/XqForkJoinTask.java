@@ -15,6 +15,8 @@ import org.basex.util.*;
  */
 public class XqForkJoinTask extends RecursiveTask<Value> {
 
+  static final long serialVersionUID = 0L;
+
   private Value work;
   @SuppressWarnings("javadoc")
   private QueryContext qc;
@@ -67,7 +69,13 @@ public class XqForkJoinTask extends RecursiveTask<Value> {
     // Perform my work
     try {
       for(FItem deferred : myWork) {
-        vb.add(deferred.invokeValue(qc, ii, XqPromise.empty.value()));
+        if(XqPromise.isPromise(deferred).bool(ii)) {
+          vb.add(deferred.invokeValue(qc, ii, XqPromise.empty.value()));
+        } else if(deferred.arity() == 0) {
+          vb.add(deferred.invokeValue(qc, ii));
+        } else {
+          Util.notExpected("Invalid input: fork-join can only accept deferred objects or functions with an arity of 0.");
+        }
       }
     } catch(QueryException ex) {
       Util.notExpected("Failed to process fork join", ex);

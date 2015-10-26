@@ -159,3 +159,14 @@ declare %unit:test function test:is-promise() {
       unit:assert-equals(promise:is-promise(trace(?)), false())
    )
 };
+
+declare %unit:test function test:fork-join-regular-functions() {
+  let $work := for $i in (1 to 10) 
+              return
+                function() { trace(<value>{$i}</value>) }
+  return 
+    let $result := promise:fork-join($work)
+    return
+      unit:assert-equals(sum($result), 55)
+};
+
