@@ -10,21 +10,21 @@ An implementation of the promise and fork-join patterns for async processing in 
  + [Dependencies](#dependencies)
 * [The Basics of a Promise](#the-basics-of-a-promise)
  + [defer](#defer)
-   - [Callbacks](#callbacks)
-     * [then](#then)
-     * [done](#done)
-     * [always](#always)
-     * [fail](#fail)
-   - [Adding callbacks](#adding-callbacks)
-     * [Before Creation](#before-creation)
-     * [After creation](#after-creation)
-     * [Multiple Callbacks per event](#multiple-callbacks-per-event)
+ + [Callbacks](#callbacks)
+   - [then](#then)
+   - [done](#done)
+   - [always](#always)
+   - [fail](#fail)
+ + [Adding callbacks](#adding-callbacks)
+   - [Before Creation](#before-creation)
+   - [After creation](#after-creation)
+   - [Multiple Callbacks per event](#multiple-callbacks-per-event)
  + [when](#when)
 * [The Power of Promises and Parallel Execution](#the-power-of-promises-and-parallel-execution)
  + [fork-join](#fork-join)
    - [How to interact with shared resources](#how-to-interact-with-shared-resources)
-       + [Never attempt to write to a database within a fork](#never-attempt-to-write-to-a-database-within-a-fork)
-       + [Do not open disc resources (databases, files) from multiple forks.](#do-not-open-disc-resources-databases-files-from-multiple-forks)
+     * [Never attempt to write to a database within a fork](#never-attempt-to-write-to-a-database-within-a-fork)
+     * [Do not open disc resources (databases, files) from multiple forks.](#do-not-open-disc-resources-databases-files-from-multiple-forks)
      * [Other words of caution!](#other-words-of-caution)
    - [Advanced Forking](#advanced-forking)
      * [Compute size](#compute-size)
@@ -118,15 +118,15 @@ Now you may be wondering about the <code>$promise(())</code> call. In particular
 
 By passing an empty sequence into the promises method we instruct it to exceute its work and return the results. The alternative is to pass in a map of callback functions: 
 
-#### Callbacks
+### Callbacks
 In the above example we deferred a simple piece of work and then learned how to execute it at a later time by passing in the empty sequence. Now let me introduce the real power of the [promise][0] pattern with <code>callbacks</code>
 
 A ``callback`` is a function which will be executed on the success or failure of some defered work. The available callback events to subscribe to are:
 
-##### then
+#### then
 This callback will be invoked upon success of the deferred execution. It acts as a pipeline function for transforming the response over successive callback executions. Unlike the next two events, but similar to ``fail``, this method can alter the pipeline result, and generally does.
 
-##### done
+#### done
 Called on success. 
 
 This method has no effect on the pipeline result and thus it's return value will be discared. Its main
@@ -134,10 +134,10 @@ purpose is for reacting to successful deferred execution as opposed to affecting
 
 A common use case for ``done`` is logging.
 
-##### always
+#### always
 Operates the same as ``done``, except it also is called on the promise's failure, not only success.
 
-##### fail
+#### fail
 Called if the action fails. 
 
 A failure occurs if any deferred work or callback function throws an exception.
@@ -151,12 +151,12 @@ Alternatively, if the error should simply be ignored, the callback must return t
 * Fail miserably
 Ultimately, if the failure cannot be mitigated. Throwing an exception within the callback using ``fn:error`` will cause the enitre fork and query to cease.
 
-#### Adding callbacks
+### Adding callbacks
 There are two ways to add callbacks: 
 * During a promise's creation
 * Before a promise's creation
 
-##### Before Creation
+#### Before Creation
 Lets see an example of the first case:
 
 Imagine we want to make a request using the standard ``http:send-request`` method and then extract the body in a single streamlined callback pipeline.
@@ -176,7 +176,7 @@ In the above example we attached a ``then`` callback. This callback function has
 
 In this example, since the ``$extract-body's`` input will be the result of its parent ``promise``. The result will be the response body of the http request.
 
-##### After creation
+#### After creation
 So far, all the examples have attached ``callbacks`` during the call with ``defer``; however there is another, even more powerful way. 
 A ``promise`` itself, can accept callbacks aswell!
 
@@ -197,7 +197,7 @@ return
 ```
 Note how the ``$extractListItems`` callback is appended to the ``$retrieve`` promise, resulting in a new promise ``$extract``. Which, when executed will initiate the full chain of callbacks!
 
-##### Multiple Callbacks per event
+#### Multiple Callbacks per event
 
 Multiple callbacks, not just one, can be attached to each of the 4 events. For example:
 ```xquery
@@ -313,7 +313,7 @@ With any async process comes the possibility of synchronization problems. Fortun
 
 There are a few things to note however when using ``fork-join``
 
-###### Never attempt to write to a database within a fork
+##### Never attempt to write to a database within a fork
 Luckily this does ``not`` restrict you from writing to databases, it just means: compute in forks, write after you have rejoined.
 Fortunately you can be sure everything returned from the ``fork-join`` operation is returned on the main thread and thus is safe! 
 
@@ -326,7 +326,7 @@ return
   return db:add($db, $path, $result)
 ```
 
-###### Do not open disc resources (databases, files) from multiple forks. 
+##### Do not open disc resources (databases, files) from multiple forks. 
 
 Now this may seem like a major limitation, but its not. You can still interact and even open these resources in callbacks, 
 and thus parallelized forks, however be cautious to try and open a resource only once and hopefully in a single piece of work.
