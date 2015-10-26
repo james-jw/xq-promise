@@ -54,7 +54,7 @@ public class XqPromise extends QueryModule  {
    * @param funcItem - Item to test.
    * @return True if the item is a promise
    */
-  public Bln isPromise(final FItem funcItem) {
+  public static Bln isPromise(final FItem funcItem) {
     return Bln.get(funcItem instanceof XqDeferred);
   }
 

@@ -74,7 +74,7 @@ public class XqForkJoinTask extends RecursiveTask<Value> {
         } else if(deferred.arity() == 0) {
           vb.add(deferred.invokeValue(qc, ii));
         } else {
-          Util.notExpected("Invalid input: fork-join can only accept deferred objects or functions with an arity of 0.");
+          Util.notExpected("Invalid input: fork-join can only accept deferred objects or functions with an arity of 0.", new Exception());
         }
       }
     } catch(QueryException ex) {
