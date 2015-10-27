@@ -16,7 +16,7 @@ An implementation of the promise and fork-join patterns for async processing in 
     - [always](#always)
     - [fail](#fail)
  + [Adding callbacks](#adding-callbacks)
-   - [Before Creation](#before-creation)
+   - [During Creation](#during-creation)
     - [After creation](#after-creation)
     - [Multiple Callbacks per event](#multiple-callbacks-per-event)
  + [when](#when)
@@ -154,9 +154,9 @@ Ultimately, if the failure cannot be mitigated. Throwing an exception within the
 ### Adding callbacks
 There are two ways to add callbacks: 
 * During a promise's creation
-* Before a promise's creation
+* After a promise's creation
 
-#### Before Creation
+#### During Creation
 Lets see an example of the first case:
 
 Imagine we want to make a request using the standard ``http:send-request`` method and then extract the body in a single streamlined callback pipeline.
