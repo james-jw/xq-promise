@@ -1,7 +1,3 @@
-(:
- : @author James Wright
- : Tests for xq-promise library
- :)
 module namespace test = 'http://basex.org/modules/xqunit-tests';
 import module namespace promise = 'org.jw.basex.async.xq-promise'; 
 
@@ -114,9 +110,8 @@ declare %unit:test function test:when-with-diff-arity() {
     promise:when(
       (
         promise:defer(trace(?), 'Hello'),
-        promise:defer(trace(?), 'world')
-      ),
-      map { 'then': $greet }
+        promise:defer(trace(?), 'world')),
+        map { 'then': $greet }
     )
   return
    unit:assert-equals($promise(()), 'Hello world!')
@@ -168,5 +163,18 @@ declare %unit:test function test:fork-join-regular-functions() {
     let $result := promise:fork-join($work)
     return
       unit:assert-equals(sum($result), 55)
+};
+
+
+declare %unit:test function test:multiple-arity-callback() {
+  let $worker := function($fname, $lname) { 'Hello, ' || $fname || ' ' || $lname }
+  let $promise := promise:defer($worker, ('every', 'one'), map {
+    'then': function($p) { 'then: ' || $p },
+    'fail': function ($result as item()*) {
+              trace($result, 'Request failed!') => prof:void()
+            }
+  })
+  return
+   unit:assert-equals($promise(()), 'then: Hello, every one')
 };
 

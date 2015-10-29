@@ -127,9 +127,10 @@ public class XqDeferred extends FItem implements XQFunction {
   private Value[] emptyValueArray = new Value[0];
   private Value[] valueToArray(Value in) {
     List<Value> argsArray = new ArrayList<Value>();
-    for(Value v : in) { argsArray.add(v); };
+    for(int i = 0; i < in.size(); i++) { argsArray.add(in.itemAt(i)); };
     return argsArray.toArray(emptyValueArray);
   }
+
 
   /**
    * Invokes a method, transforming the arguments to match the function item provided.
@@ -142,36 +143,33 @@ public class XqDeferred extends FItem implements XQFunction {
    * @throws QueryException
    */
   private Value invokeFunctionItem(FItem funcItem, QueryContext qc, InputInfo ii, Value... in) throws QueryException {
-    int arity = funcItem.arity();
+    Value out;
 
-    if(arity == _work.length && arity > 1) {
-      if(in.length == arity) {
-        return funcItem.invokeValue(qc, ii, in);
-      } else if(in.length == 1) {
-        Value args = in[0];
-        if(args.size() == 1) {
-          return funcItem.invokeValue(qc, ii, args);
-        }
+    int arity = funcItem.arity(); // Arity of the function to call
+    int expected = _work.length; // Expected work to be returned  
+    int actual = in.length; // Actual number of arguments
 
-        return funcItem.invokeValue(qc, ii, valueToArray(args));
-      }
-    } else if (funcItem instanceof XqDeferred) {
-       // Its a deferred, invoke it with the empty sequence
-       return funcItem.invokeValue(qc, ii, XqPromise.empty.value());
-    }
-
-    Value out = null;
-    if(arity == 0) {
-      out = funcItem.invokeValue(qc, ii);
-    } else if(arity == 1 && (_work.length > 1 || in.length > 1)) {
-      Array results = Array.from(valueToArray(in[0]));
-      out = funcItem.invokeValue(qc, ii, results);
-    } else {
+    if(funcItem instanceof XqDeferred) {
+      out = funcItem.invokeValue(qc, ii, XqPromise.empty.value());
+    } else if(actual == arity && arity == expected)  {
       out = funcItem.invokeValue(qc, ii, in);
+    } else if(arity == 0) {
+      out = funcItem.invokeValue(qc, ii);
+    } else if(actual != expected || arity > actual) {
+      Value args = in[0];
+      if(args.size() == 1) {
+        out = funcItem.invokeValue(qc, ii, args);
+      } else if(expected > arity) {
+        out = funcItem.invokeValue(qc, ii, Array.from(valueToArray(args)));
+      } else {
+        out = funcItem.invokeValue(qc, ii, valueToArray(args));
+      }
+    } else {
+      throw new QueryException("Invalid number of arguments returned. Expected " + expected + " but was " + actual);
     }
 
     return out;
- }
+  }
 
 
   /**

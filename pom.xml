@@ -4,7 +4,7 @@
 
   <groupId>org.jw.basex</groupId>
   <artifactId>xq-promise</artifactId>
-  <version>0.7-Beta</version>
+  <version>0.7.1-Beta</version>
   <packaging>jar</packaging>
   
   <name>xq-promise</name>
