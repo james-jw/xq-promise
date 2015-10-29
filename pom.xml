@@ -28,7 +28,7 @@
       <artifactId>basex-parent</artifactId>
       <version>8.3.1-SNAPSHOT</version>
       <scope>system</scope>
-      <systemPath>/root/Projects/xq-promise/lib/BaseX831.jar</systemPath>
+      <systemPath>${project.basedir}/lib/BaseX831.jar</systemPath>
     </dependency>
   </dependencies>
   <organization>
