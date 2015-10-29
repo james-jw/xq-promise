@@ -93,7 +93,7 @@ defer($work as function(*),
 The signature may look daunting but the pattern is simple. Use the <code>defer</code> method to defer a piece of work for later execution by passing in a function item and the future arguments. Lets see how this works with an example:
 
 ```xquery
-import module namespace promise = 'org.basex.query.func.async.xq-promise';
+import module namespace promise = 'org.jw.basex.async.xq-promise';
 let $greet := function($name) {
    'Hello ' || $name || '!'
 }
