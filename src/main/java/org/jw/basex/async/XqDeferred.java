@@ -47,14 +47,14 @@ public class XqDeferred extends FItem implements XQFunction {
    * @param callbacks - Map containing callback functions
    */
   public XqDeferred(final FItem work, final Value args, final Map callbacks) {
-    super(FuncType.ANY_FUN, new AnnList());
+    super(SeqType.ANY_FUN, new AnnList());
     _work = new FItem[] { work };
     _arguments = args;
     _callbacks.add(callbacks);
   }
 
   public XqDeferred(final Value deferreds, final Map callbacks) {
-    super(FuncType.ANY_FUN, new AnnList());
+    super(SeqType.ANY_FUN, new AnnList());
     _callbacks.add(callbacks);
     _work = new FItem[(int) deferreds.size()];
     int i = 0;
@@ -64,7 +64,7 @@ public class XqDeferred extends FItem implements XQFunction {
   }
 
   public XqDeferred(final FItem[] deferreds) {
-    super(FuncType.ANY_FUN, new AnnList());
+    super(SeqType.ANY_FUN, new AnnList());
     _work = deferreds;
   }
 
