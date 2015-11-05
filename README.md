@@ -180,7 +180,7 @@ In the above example we attached a ``then`` callback. This callback function has
 In this example, since the ``$extract-body's`` input will be the result of its parent ``promise``. The result will be the response body of the http request.
 
 #### After creation
-So far, all the examples have attached ``callbacks`` during the call with ``defer``; however there is another, even more powerful way. 
+The above example attached the ``callback`` during the call with ``defer``; however there is another, even more powerful way. 
 A ``promise`` can have callbacks attached after its been created!
 
 For example:
@@ -198,8 +198,7 @@ return
    $extract()
 ```
 
-Note the calls to then and fail using the arrow operator. These calls imply add additional callbacks to the appropriate callback chain of an existing promise. Because a new
-expanded promise is returned, concise chaining can be accomplished!
+Note the calls to `then` and `fail` using the arrow operator. These calls add additional callbacks to the callback chain of the existing promise returning an agumented promise. Because a new expanded promise is returned, concise chaining can be accomplished!
 
 Also note how the ``$extractListItems`` callback is appended to the ``$retrieve`` promise, resulting in a new promise ``$extract``, which when executed, will initiate the full chain of callbacks!
 
@@ -225,8 +224,7 @@ promise:attach($work, map {
    'fail': ... })
 ```
 
-When providing callbacks via a map, the order of callback types is irrelevant. For example, having fail above then does not matter. However, the order
-callbacks are provided within an individual chain is important as it denotes the execution order of that chain.
+When providing callbacks via a map, the order of callback types is irrelevant. For example, having fail above then does not matter. However, the order callbacks are provided within an individual chain is important as it denotes the execution order of that chain.
 
 #### Multiple Callbacks per event
 
@@ -304,7 +302,7 @@ let $promises :=
        'then': ($extract-doc),
        'done': trace(?, 'Results found: ')})
   return 
-     promise:add($defer, map {'then': $extract-links })
+     promise:attach($defer, map {'then': $extract-links })
 return 
  $promises ! .()
 ```
