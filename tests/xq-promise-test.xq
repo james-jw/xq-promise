@@ -18,7 +18,7 @@ declare %unit:test function test:callbacks-add() {
     let $work := promise:defer(trace(?, 'Hello world!'), $type)
     let $promise := $work(map { $type: $callback })
     return
-      ($promise(()), file:exists($path), file:delete($path))
+      ($promise(()), unit:assert(file:exists($path)), file:delete($path))
 };
 
 declare %unit:test function test:callbacks-fail() {
@@ -27,7 +27,7 @@ declare %unit:test function test:callbacks-fail() {
   let $work := promise:defer(function () { fn:error('Failed!') })
   let $promise := $work(map { 'fail': $callback })
   return
-    ($promise(()), unit:assert-equals(file:exists($path),true()), file:delete($path))
+    ($promise(()), unit:assert(file:exists($path)), file:delete($path))
 };
 
 declare %unit:test function test:callbacks-fail-fix-value() {
@@ -177,4 +177,91 @@ declare %unit:test function test:multiple-arity-callback() {
   return
    unit:assert-equals($promise(()), 'then: Hello, every one')
 };
+
+declare %unit:test function test:fork() {
+  let $worker := function($fname, $lname) { 'Hello, ' || $fname || ' ' || $lname }
+  let $future := promise:fork($worker, ('every', 'one'))
+  return
+     unit:assert-equals($future(()), 'Hello, every one')
+};
+
+declare %unit:test function test:fork-with-callback() {
+  let $worker := function($fname) { 'Hello, ' || $fname }
+  let $future := promise:fork($worker, 'every')
+  let $final := $future(map { 'then': function($str) { $str || ' one' }}) 
+  return
+     unit:assert-equals($final(()), 'Hello, every one')
+};
+
+declare %unit:test function test:fork-when() {
+  let $worker := function($fname, $lname) { 'Hello, ' || $fname || ' ' || $lname }
+  let $worker2 := function($fname, $lname) { 'and ' || $fname || ' ' || $lname || '!' }
+  let $combine := function ($start, $end) { $start || ' ' || $end }
+  let $future := promise:fork($worker, ('every', 'one'))
+  let $future2 := promise:fork($worker2, ('all', 'my peeps'))
+  return
+    unit:assert-equals(
+     (promise:when(($future, $future2)) => promise:then($combine))(()),
+      'Hello, every one and all my peeps!'
+    )
+};
+
+declare %unit:test function test:then-helper() {
+  let $greet := function ($name) { 'Hello ' || $name || '!'}
+  let $promise := 
+      promise:defer(trace(?), 'world') 
+        => promise:then($greet)
+  return
+    unit:assert-equals($promise(()), 'Hello world!')
+};
+
+declare %unit:test function test:done-helper() {
+  let $type := 'done'
+  let $path := file:temp-dir() || $type || '.txt'
+  let $callback := file:write-text($path, ?)
+  let $promise := 
+      promise:defer(trace(?), 'world') 
+        => promise:done($callback)
+  return
+   ($promise(()), unit:assert(file:exists($path)), file:delete($path))
+};
+
+declare %unit:test function test:always-helper() {
+  let $type := 'always'
+  let $path := file:temp-dir() || $type || '.txt'
+  let $callback := file:write-text($path, ?)
+  let $promise := 
+      promise:defer(trace(?), 'world') 
+        => promise:always($callback)
+  return
+   ($promise(()), unit:assert(file:exists($path)), file:delete($path))
+};
+
+declare %unit:test function test:fail-helper() {
+  let $type := 'fail'
+  let $path := file:temp-dir() || $type || '.txt'
+  let $callback := file:write-text($path, ?)
+  let $promise := 
+      promise:defer(fn:error(?), 'world') 
+        => promise:fail($callback)
+  return
+   ($promise(()), unit:assert(file:exists($path)), file:delete($path))
+};
+
+declare %unit:test function test:helper-chain() {
+  let $type := 'done'
+  let $path := file:temp-dir() || $type || '.txt'
+  let $callback := file:write-text($path, ?)
+  let $greet := function ($name) { 'Hello ' || $name || '!'}
+  let $promise := 
+      promise:defer(trace(?), 'world') 
+        => promise:then($greet)
+        => promise:done($callback)
+  return
+    (
+      unit:assert-equals($promise(()), 'Hello world!'),
+      ($promise(()), unit:assert-equals(file:read-text($path), 'Hello world!'), file:delete($path))
+    )
+};
+
 

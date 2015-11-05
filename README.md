@@ -75,12 +75,13 @@ writing of sensitive data.
 This module is dependent on [BaseX][1].
 
 ## The Basics of a Promise 
-In it's current iteration the library includes 4 methods with several overloads. The methods are as follows:
+In it's current iteration the library includes several methods with several overloads. The methods are as follows:
 
 * defer
 * when
 * is-promise
 * fork-join
+* fork
 
 ### defer
 ```xquery
@@ -143,12 +144,17 @@ Called if the action fails.
 A failure occurs if any deferred work or callback function throws an exception.
 
 * Mitigate the failure
+
 If this callback returns a value. The failure will disappear as though no error occurred, 
 with the replaced value returned from the failure callback being used in the result. 
 This is similar to how ``then`` works.
+
 * Fail silently
+
 Alternatively, if the error should simply be ignored, the callback must return the ``empty-sequence``.
+
 * Fail miserably
+
 Ultimately, if the failure cannot be mitigated. Throwing an exception within the callback using ``fn:error`` will cause the enitre fork and query to cease.
 
 ### Adding callbacks
@@ -197,16 +203,27 @@ return
 ```
 Note how the ``$extractListItems`` callback is appended to the ``$retrieve`` promise, resulting in a new promise ``$extract``. Which, when executed will initiate the full chain of callbacks!
 
+#### Chaining Helper Functions
+Four methods, matching the callback event names, exist for attaching callbacks in a chain fashion using the arrow operator. For example:
+
+```xquery
+let $retrieve := proc:defer($worker, ($req, $uri))
+       => promise:then(parse-json(?))
+       => promise:then($extractlistItems)
+       => promise:fail($error)
+return
+   $retrieve(())
+```
+
 #### Multiple Callbacks per event
 
 Multiple callbacks, not just one, can be attached to each of the 4 events. For example:
 ```xquery
 (: same $req, etc.. from above :)
 let $extract-links := function ($res) { $res//a }
-let $promise := promise:defer($request, 'http://www.google.com', map { 
-    'then': ($extract-body, $extract-links),
-    'fail': trace(?, 'Execution failed: ')
-})
+let $promise := promise:defer($request, 'http://www.google.com') 
+    => promise:then(($extract-body, $extract-linkes)) 
+    => promise:fail(trace?, ('Execution failed!'))
 return
   $promise(())
 ```
@@ -251,7 +268,7 @@ Hopefully its clear now: how to defer work for later execution, what a promise i
 
 ### fork-join
 
-Let me introduce one last method, and the whole reason I wrote this library.
+Let me introduce two last methods, and the whole reason I wrote this library.
 
 ```xquery
 fork-join($promises as function(*)*) as item()*
@@ -307,6 +324,25 @@ If you watch this execute in BaseX you will quickly see its executing much faste
 On my machine, the first example without ``fork-join`` took on average 55 seconds. With ``fork-join`` this time dropped to 6 seconds!
 
 That is a clear advantage! Playing around with ``compute size`` and ``max forks``, which I will introduce shortly, I have been able to get this even lower, to around 2 seconds!!
+
+### fork
+In addition to `fork-join` is the simple `fork` method. The fork method operates much like `defer`, in that it returns a promise which may accept callbacks. Unlike defer however,
+the work is executed immediately in a new thread as opposed to being deferred for later execution. 
+
+For example, lets imagine we want to optimize the performance of a web response. During the processing an external API is queries as well as other internal processing. The internal call is
+not dependend on the external call until the end and thus these operations can run in parrallel. 
+
+```xquery
+let $request := http:send-request($req, ?)
+let $promise := promise:fork($request, 'http://myapi.com')
+let $hardAnswer := some-heavy-work()
+return
+  ($hardAnswer, $promise(()))
+```
+In the above example, the work of sending the http requerst, and waiting for its response, will be forked immediately letting the main thread continue with computing the `$hardAnswer`. Once 
+that is done, both it and the promise can be returned.
+
+Hopefully its clear now the use cases for both `fork-join` and `fork`.
 
 #### How to interact with shared resources
 With any async process comes the possibility of synchronization problems. Fortunately, XQuery due to its immutable nature is naturally suited to this type of work. Additionally from my limited look at BaseX, the code is very thread safe. Add to this, the introduction of the promise pattern and safe multi-threading appears to be real. 

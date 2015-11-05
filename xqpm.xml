@@ -4,7 +4,7 @@
   <dependencies>
     <directory path="{{lib}}">
       <dependency name="xq-promise.jar" type="binary" 
-                  path="https://raw.githubusercontent.com/james-jw/xq-promise/master/target/xq-promise-0.7-Beta.jar" />
+                  path="https://raw.githubusercontent.com/james-jw/xq-promise/master/target/xq-promise-0.7.2-Beta.jar" />
     </directory>
   </dependencies>
 </config>

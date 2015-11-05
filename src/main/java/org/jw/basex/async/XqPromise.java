@@ -1,18 +1,20 @@
 package org.jw.basex.async;
 
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ForkJoinPool;
 
 import org.basex.query.*;
 import org.basex.query.value.*;
 import org.basex.query.value.item.*;
 import org.basex.query.value.map.*;
+import org.basex.query.value.seq.Empty;
 
 /**
  * @author James Wright
  * Implements the promise pattern as well as fork-join for async processing
  */
 public class XqPromise extends QueryModule  {
-   public static final ValueBuilder empty = new ValueBuilder();
 
    public static final Str fail = Str.get("fail");
    public static final Str done = Str.get("done");
@@ -28,7 +30,7 @@ public class XqPromise extends QueryModule  {
    * @param callbacks - callbacks to excecute upon completion and or failure.
    * @return - Deferred function item.
    */
-  public FItem defer(final FItem work, final Value args, final Map callbacks ) {
+  public FItem defer(final FItem work, final Value args, final Map callbacks ) throws QueryException {
       return new XqDeferred(work, args, callbacks);
    }
 
@@ -37,7 +39,7 @@ public class XqPromise extends QueryModule  {
   * @param args - arguments to pass to the work function.
   * @return - Deferred function item.
   */
-  public FItem defer(final FItem work, final Value args ) {
+  public FItem defer(final FItem work, final Value args ) throws QueryException {
      return new XqDeferred(work, args, Map.EMPTY);
   }
 
@@ -45,8 +47,8 @@ public class XqPromise extends QueryModule  {
    * @param work - function of work to defer
    * @return - Deferred function item.
    */
-  public FItem defer(final FItem work) {
-	 return new XqDeferred(work, XqPromise.empty.value(), Map.EMPTY);
+  public FItem defer(final FItem work) throws QueryException {
+	 return new XqDeferred(work, Empty.SEQ, Map.EMPTY);
   }
 
   /**
@@ -63,16 +65,81 @@ public class XqPromise extends QueryModule  {
    * @param callbacks - map of call backs: then, done, always, fail
    * @return - Deferred function item.
    */
-  public FItem when(final Value deferreds, final Map callbacks ) {
+  public FItem when(final Value deferreds, final Map callbacks ) throws QueryException {
      return new XqDeferred(deferreds, callbacks);
-   }
+  }
 
    /**
    * @param deferreds - List of deferred promises to combine.
    * @return - Deferred function item.
    */
-  public Value when(final Value deferreds) {
+  public Value when(final Value deferreds) throws QueryException {
      return new XqDeferred(deferreds, Map.EMPTY);
+  }
+
+  public Value then(final Value deferred, final Value callbacks) throws QueryException {
+     if(deferred instanceof XqDeferred) {
+       ((XqDeferred)deferred).addCallbacks("then", callbacks);
+       return deferred;
+     } else { throw new QueryException("Can only add callbacks to deferreds."); } 
+  }
+  
+  /* Attaches a set of done callbacks to an existing promise
+   * @param promise - Promise to attach callback too
+   * @param callbacks - Callbacks to attach
+   * @return - The promise passed in as the first argument. Useful in chaining
+   */
+  public Value done(final Value deferred, final Value callbacks) throws QueryException {
+     if(deferred instanceof XqDeferred) {
+       ((XqDeferred)deferred).addCallbacks("done", callbacks);
+       return deferred;
+     } else { throw new QueryException("Can only add callbacks to deferreds."); } 
+  }
+  
+  /* Attaches a set of always callbacks to an existing promise
+   * @param promise - Promise to attach callback too
+   * @param callbacks - Callbacks to attach
+   * @return - The promise passed in as the first argument. Useful in chaining
+   */
+  public Value always(final Value deferred, final Value callbacks) throws QueryException {
+     if(deferred instanceof XqDeferred) {
+       ((XqDeferred)deferred).addCallbacks("always", callbacks);
+       return deferred;
+     } else { throw new QueryException("Can only add callbacks to deferreds."); } 
+  }
+  
+  /* Attaches a set of fail callbacks to an existing promise
+   * @param promise - Promise to attach callback too
+   * @param callbacks - Callbacks to attach
+   * @return - The promise passed in as the first argument. Useful in chaining
+   */
+  public Value fail(final Value deferred, final Value callbacks) throws QueryException {
+     if(deferred instanceof XqDeferred) {
+       ((XqDeferred)deferred).addCallbacks("fail", callbacks);
+       return deferred;
+     } else { throw new QueryException("Can only add callbacks to deferreds."); } 
+  }
+
+  /* Forks a piece of work or an unexecuted promise.
+   * @param - Work or promise chaine to execute
+   * @return - A promise to retrieve the result from, if required.
+   */
+  public Value fork(final Value promises) {
+      ValueBuilder vb = new ValueBuilder();
+      XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(promises, Integer.parseInt(1 + ""), new QueryContext(queryContext), null, vb.value());
+      List<XqForkJoinTask<Value>> fork = new ArrayList<XqForkJoinTask<Value>>();
+      fork.add(task);
+      
+      return new XqDeferred(pool.invokeAll(fork));
+  }
+
+  /* Forks a piece of work. 
+   * @param work - Work to fork
+   * @param arguments - Arguments to provide to the work
+   * @return - A promise to retrieve the result from, if required.
+   */
+  public Value fork(final FItem work, final Value args) throws QueryException {
+    return fork(defer(work, args));
   }
 
   public Value forkJoin(final Value deferreds) throws QueryException {
@@ -87,7 +154,7 @@ public class XqPromise extends QueryModule  {
    */
   public Value forkJoin(final Value deferreds, Int workSplit) throws QueryException {
     ValueBuilder vb = new ValueBuilder();
-    XqForkJoinTask task = new XqForkJoinTask(deferreds, Integer.parseInt(workSplit.toString() + ""), new QueryContext(queryContext), null, vb.value());
+    XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(deferreds, Integer.parseInt(workSplit.toString() + ""), new QueryContext(queryContext), null, vb.value());
     return pool.invoke(task);
   }
 
@@ -101,7 +168,7 @@ public class XqPromise extends QueryModule  {
   public Value forkJoin(final Value deferreds, Int workSplit, Int threadsIn) throws QueryException {
     ValueBuilder vb = new ValueBuilder();
     ForkJoinPool customPool = new ForkJoinPool(Integer.parseInt(threadsIn + ""));
-    XqForkJoinTask task = new XqForkJoinTask(deferreds, Integer.parseInt(workSplit.toString() + ""), new QueryContext(queryContext), null, vb.value());
+    XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(deferreds, Integer.parseInt(workSplit.toString() + ""), new QueryContext(queryContext), null, vb.value());
     Value out = customPool.invoke(task);
     customPool.shutdown();
     return out;

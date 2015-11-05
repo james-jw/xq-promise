@@ -6,6 +6,7 @@ import java.util.concurrent.*;
 import org.basex.query.*;
 import org.basex.query.value.*;
 import org.basex.query.value.item.*;
+import org.basex.query.value.seq.Empty;
 import org.basex.util.*;
 
 /**
@@ -13,7 +14,7 @@ import org.basex.util.*;
  * Forks a set of tasks, performing their computation in parallel followed by rejoining the results.
  *
  */
-public class XqForkJoinTask extends RecursiveTask<Value> {
+public class XqForkJoinTask<T extends Value> extends RecursiveTask<Value> implements Callable<T> {
 
   static final long serialVersionUID = 0L;
 
@@ -44,6 +45,12 @@ public class XqForkJoinTask extends RecursiveTask<Value> {
     this(deferreds, 2, qcIn, iiIn, args);
   }
 
+  @SuppressWarnings("unchecked")
+  @Override
+  public T call() throws Exception {
+    return (T) compute();
+  }
+
   @Override
   protected Value compute() {
     ValueBuilder vb = new ValueBuilder();
@@ -59,10 +66,10 @@ public class XqForkJoinTask extends RecursiveTask<Value> {
     }
 
     // Let others start the remaining work
-    XqForkJoinTask[] subtasks = work.size() <= _computeSize
+    XqForkJoinTask<Value>[] subtasks = work.size() <= _computeSize
         ? new XqForkJoinTask[0] : splitRemainingWorkload(i);
 
-    for(XqForkJoinTask task : subtasks) {
+    for(XqForkJoinTask<Value> task : subtasks) {
       task.fork();
     }
 
@@ -70,7 +77,7 @@ public class XqForkJoinTask extends RecursiveTask<Value> {
     try {
       for(FItem deferred : myWork) {
         if(XqPromise.isPromise(deferred).bool(ii)) {
-          vb.add(deferred.invokeValue(qc, ii, XqPromise.empty.value()));
+          vb.add(deferred.invokeValue(qc, ii, Empty.SEQ));
         } else if(deferred.arity() == 0) {
           vb.add(deferred.invokeValue(qc, ii));
         } else {
@@ -82,7 +89,7 @@ public class XqForkJoinTask extends RecursiveTask<Value> {
     }
 
     // Rejoin with the others.
-    for(XqForkJoinTask task : subtasks) {
+    for(XqForkJoinTask<Value> task : subtasks) {
       try {
         vb.add(task.get());
       } catch(InterruptedException e) {
@@ -98,17 +105,17 @@ public class XqForkJoinTask extends RecursiveTask<Value> {
   /**
    * @return The combined value of all the split operations results.
    */
-  private XqForkJoinTask[] splitRemainingWorkload(int taken) {
-    List<XqForkJoinTask> subtasks = new ArrayList<XqForkJoinTask>();
+  private XqForkJoinTask<Value>[] splitRemainingWorkload(int taken) {
+    List<XqForkJoinTask<Value>> subtasks = new ArrayList<XqForkJoinTask<Value>>();
 
     int length = Integer.parseInt(work.size() + "") - taken;
 
     Value firstHalf = length == 1 ? work.subSeq(taken, 1) : work.subSeq(taken, length/2  );
-    subtasks.add(new XqForkJoinTask(firstHalf, new QueryContext(qc), ii, XqPromise.empty.value()));
+    subtasks.add(new XqForkJoinTask<Value>(firstHalf, new QueryContext(qc), ii, Empty.SEQ));
 
     if(length > 1) {
       Value secondHalf = work.subSeq(taken + length/2, length - (length/2));
-      subtasks.add(new XqForkJoinTask(secondHalf, new QueryContext(qc), ii, XqPromise.empty.value()));
+      subtasks.add(new XqForkJoinTask<Value>(secondHalf, new QueryContext(qc), ii, Empty.SEQ));
     }
 
     return subtasks.toArray(new XqForkJoinTask[0]);
