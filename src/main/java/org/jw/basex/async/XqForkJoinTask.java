@@ -76,9 +76,7 @@ public class XqForkJoinTask<T extends Value> extends RecursiveTask<Value> implem
     // Perform my work
     try {
       for(FItem deferred : myWork) {
-        if(XqPromise.isPromise(deferred).bool(ii)) {
-          vb.add(deferred.invokeValue(qc, ii, Empty.SEQ));
-        } else if(deferred.arity() == 0) {
+        if(deferred.arity() == 0) {
           vb.add(deferred.invokeValue(qc, ii));
         } else {
           Util.notExpected("Invalid input: fork-join can only accept deferred objects or functions with an arity of 0.");

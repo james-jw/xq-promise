@@ -81,17 +81,10 @@ public class XqDeferred extends FItem implements XQFunction {
   }
 
   public Value invValue(QueryContext qc, InputInfo ii, Value... args) throws QueryException {
-    if(args[0].seqType() == SeqType.EMP) {
-      return processInvocation(qc, ii, _arguments);
-    } else if(args.length == 1) {
-      addCallbacks((Map)args[0]);
-
-      return this;
-    }
-
-    return Empty.SEQ;
+     return processInvocation(qc, ii, _arguments);
   }
-  private void addCallbacks(Map callbacksIn) throws QueryException {
+
+  public void addCallbacks(Map callbacksIn) throws QueryException {
     if(callbacksIn.contains(XqPromise.then, null)) {
       addCallbacks("then", callbacksIn.get(XqPromise.then, null)); 
     } else if(callbacksIn.contains(XqPromise.always, null)) {
@@ -289,7 +282,7 @@ public class XqDeferred extends FItem implements XQFunction {
   }
 
   public int arity() {
-    return 1;
+    return 0;
   }
   private static QNm qname = new QNm("Promise", "");
   public QNm funcName() {
@@ -297,9 +290,6 @@ public class XqDeferred extends FItem implements XQFunction {
   }
 
   public QNm argName(int pos) {
-    switch(pos) {
-      case 0: return new QNm("promises", "");
-    }
     return null;
   }
 

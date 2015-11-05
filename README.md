@@ -6,7 +6,7 @@ An implementation of the promise and fork-join patterns for async processing in 
 * [Thanks!](#thanks)
 * [Installation](#installation)
  + [Declaration](#declaration)
- + [Version 0.7-BETA](#version-07-beta)
+ + [Version 0.7.3-BETA](#version-073-beta)
  + [Dependencies](#dependencies)
 * [The Basics of a Promise](#the-basics-of-a-promise)
  + [defer](#defer)
@@ -40,7 +40,7 @@ This library implements the [promise][0] pattern as seen in many other languages
 Most notably those in the javascript community, such as jQuery and Q.js. 
 
 The pattern resolves around the idea of deferred execution through what is often called a 
-<code>deferred</code> object. When an action is deferred, it returns a function, known as <code>promise</code> that 
+``deferred`` object. When an action is deferred, it returns a function, known as ``promise`` that 
 when executed, at a later time, will perform and return the results of the work it deferred. 
 
 Since the work is deferred and can be executed at an arbitrary time. There is the ability to attach further processing at a later date but prior to actual execution, via callback functions. This may sound confusing and hard to imagine, but I 'promise' the examples that follow will make it clearer. No pun intended.
@@ -67,7 +67,7 @@ To use the module in your scripts simple import it like so:
 import module namespace promise = 'org.jw.basex.async.xq-promise';
 ```
 
-### Version 0.7-BETA
+### Version 0.7.3-BETA
 This module is currently in Beta and should be used with caution. Especially in scenarios involving the
 writing of sensitive data. 
 
@@ -111,13 +111,9 @@ If you examine the output. The value returned is: <code>function (anonymous)#1</
 This is where the power of the promise pattern starts to be realized. Formost, as mentioned prior, a promise is a ``function``. To retrieve it's value, it must be called:
 
 ```xquery
-$promise(())
+$promise()
 ```
 The above modifcation will result in the expected answer: <code>Hello world!</code>
-
-Now you may be wondering about the <code>$promise(())</code> call. In particular the passing of the ``()`` empty sequence. 
-
-By passing an empty sequence into the promises method we instruct it to exceute its work and return the results. The alternative is to pass in a map of callback functions: 
 
 ### Callbacks
 In the above example we deferred a simple piece of work and then learned how to execute it at a later time by passing in the empty sequence. Now let me introduce the real power of the [promise][0] pattern with <code>callbacks</code>
@@ -145,13 +141,13 @@ A failure occurs if any deferred work or callback function throws an exception.
 
 * Mitigate the failure
 
-If this callback returns a value. The failure will disappear as though no error occurred, 
+If a `fail` callback chain returns a value. The failure will disappear as though no error occurred, 
 with the replaced value returned from the failure callback being used in the result. 
 This is similar to how ``then`` works.
 
 * Fail silently
 
-Alternatively, if the error should simply be ignored, the callback must return the ``empty-sequence``.
+Alternatively, if the error should simply be ignored, the `fail` callback must return the ``empty-sequence``.
 
 * Fail miserably
 
@@ -176,15 +172,15 @@ let $promise := promise:defer($request, 'http://www.google.com', map {
        'then': $extract-body 
 })
 return
-  $promise(())
+  $promise()
 ```
-In the above example we attached a ``then`` callback. This callback function has the ability to transform the output of it's parent ``promise``. With this in the mind, it should be clear that the ``$extract-body``'s return value will be retuned at the call to ``$promise(())``. 
+In the above example we attached a ``then`` callback. This callback function has the ability to transform the output of it's parent ``promise``. With this in the mind, it should be clear that the ``$extract-body``'s return value will be retuned at the call to ``$promise()``. 
 
 In this example, since the ``$extract-body's`` input will be the result of its parent ``promise``. The result will be the response body of the http request.
 
 #### After creation
 So far, all the examples have attached ``callbacks`` during the call with ``defer``; however there is another, even more powerful way. 
-A ``promise`` itself, can accept callbacks aswell!
+A ``promise`` can have callbacks attached after its been created!
 
 For example:
 ```xquery
@@ -193,27 +189,43 @@ let $extractListItems := function ($res as map(*)) { $res?list?* }
 let $error := function ($result as item()*) {
      trace($result, 'Request failed!') => prof:void()
 }
-let $retrieve := proc:defer($worker, ($req, $uri), map { 
-           'then': parse-json(?), 
-           'fail': $error 
-}) 
-let $extract = $retrieve(map { 'then': $extractListItems  })
+let $retrieve := p:defer($worker, ($req, $uri))
+          => p:then(parse-json(?))
+          => p:fail($error)
+let $extract = p:then($retrieve, $extractListItems)
 return
-   $extract(())
+   $extract()
 ```
-Note how the ``$extractListItems`` callback is appended to the ``$retrieve`` promise, resulting in a new promise ``$extract``. Which, when executed will initiate the full chain of callbacks!
+
+Note the calls to then and fail using the arrow operator. These calls imply add additional callbacks to the appropriate callback chain of an existing promise. Because a new
+expanded promise is returned, concise chaining can be accomplished!
+
+Also note how the ``$extractListItems`` callback is appended to the ``$retrieve`` promise, resulting in a new promise ``$extract``, which when executed, will initiate the full chain of callbacks!
 
 #### Chaining Helper Functions
 Four methods, matching the callback event names, exist for attaching callbacks in a chain fashion using the arrow operator. For example:
 
 ```xquery
-let $retrieve := proc:defer($worker, ($req, $uri))
-       => promise:then(parse-json(?))
-       => promise:then($extractlistItems)
-       => promise:fail($error)
+let $retrieve := p:defer($worker, ($req, $uri))
+       => p:then(parse-json(?))
+       => p:then($extractlistItems)
+       => p:fail($error)
 return
-   $retrieve(())
+   $retrieve()
 ```
+
+##### attach
+A fifth method for attaching in mass is provided. The ``attach`` method accepts a map of callbacks
+similar to defer.
+
+```xquery
+promise:attach($work, map { 
+   'then': ..., 
+   'fail': ... })
+```
+
+When providing callbacks via a map, the order of callback types is irrelevant. For example, having fail above then does not matter. However, the order
+callbacks are provided within an individual chain is important as it denotes the execution order of that chain.
 
 #### Multiple Callbacks per event
 
@@ -225,7 +237,7 @@ let $promise := promise:defer($request, 'http://www.google.com')
     => promise:then(($extract-body, $extract-linkes)) 
     => promise:fail(trace?, ('Execution failed!'))
 return
-  $promise(())
+  $promise()
 ```
 Foremost, note the addition of a second ``then`` callback. Both of these will be called in order. The result of the first callback will be passed to the second. In this example, since ``then`` is a pipeline callback. The result will be all the links in the document.
 
@@ -256,10 +268,10 @@ let $users:= promise:when(($extractDocName, $extractUsers), map {
                'fail': trace(?, 'Requesting users failed: ')
 })
 return
-    $users(()) ! trace(.?username, 'Retrieved: ')
+    $users() ! trace(.?username, 'Retrieved: ')
 ```
 
-In this example, we perform two deferred actions and then merge their results in the ``$write-and-return-users`` callback. Since this item is attached to the ``when's`` promise on the ``then`` callback, its result will be seen on the call to ``$users(())``.
+In this example, we perform two deferred actions and then merge their results in the ``$write-and-return-users`` callback. Since this item is attached to the ``when's`` promise on the ``then`` callback, its result will be seen on the call to ``$users()``.
 
 We could continue to attach callbacks as needed until we are ready. There is no limit.
 
@@ -281,24 +293,24 @@ As seen earlier, ``promises`` can be used to build up a piece of work for later 
 Lets see how we can use this capability by comparing a simple example involving making http requests. The example will use the ``promise`` pattern but not ``fork-join`` just yet. 
 
 ```xquery
-import module namespace async = 'org.jw.basex.async.xq-promise';
+import module namespace promise = 'org.jw.basex.async.xq-promise';
 let $work := http:send-request(<http:request method="GET" />, ?)
 let $extract-doc := function ($res) { $res[2] }
 let $extract-links := function ($res) { $res//a[@href => matches('^http')] }
 let $promises :=
   for $uri in ((1 to 5) !  ('http://www.google.com', 'http://www.yahoo.com', 'http://www.amazon.com', 'http://cnn.com', 'http://www.msnbc.com'))
-  let $defer := async:defer($work, $uri, map {
+  let $defer := promise:defer($work, $uri, map {
        'then': ($extract-doc),
        'done': trace(?, 'Results found: ')})
   return 
-     $defer(map {'then': $extract-links })
+     promise:add($defer, map {'then': $extract-links })
 return 
- $promises ! .(())
+ $promises ! .()
 ```
 
 In the above example, we use promises to queue up 25 requests and then execute them in order with:
 ```xquery
- $promises ! .(())
+ $promises ! .()
 ```
 If you run this example in BaseX GUI and watch the output window, you will see the requests come in as the query executes. 
 This is due to the addition of the ``trace? 'Results Found: '`` callback.
@@ -312,7 +324,7 @@ Luckily, with the introduction of this module ``xq-promise``. This is no longer 
 
 Luckily the previous example already used ``defer`` so the change is only one line. Replace:
 ```xquery
-$promises ! .(())
+$promises ! .()
 ```
 which manually executes each promise on the main thread, with:
 ```xquery
@@ -337,7 +349,7 @@ let $request := http:send-request($req, ?)
 let $promise := promise:fork($request, 'http://myapi.com')
 let $hardAnswer := some-heavy-work()
 return
-  ($hardAnswer, $promise(()))
+  ($hardAnswer, $promise())
 ```
 In the above example, the work of sending the http requerst, and waiting for its response, will be forked immediately letting the main thread continue with computing the `$hardAnswer`. Once 
 that is done, both it and the promise can be returned.

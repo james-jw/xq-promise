@@ -77,6 +77,17 @@ public class XqPromise extends QueryModule  {
      return new XqDeferred(deferreds, Map.EMPTY);
   }
 
+  public Value attach(final Value deferred, final Map callbacks) throws QueryException {
+     if(deferred instanceof XqDeferred) {
+       ((XqDeferred)deferred).addCallbacks(callbacks);
+       return deferred;
+     } else { throw new QueryException("Can only add callbacks to deferreds."); } 
+  }
+  /* Attaches one or more then callbacks to an existing promise
+   * @param promise - Promise to attach callback too
+   * @param callbacks - Callbacks to attach
+   * @return - The promise passed in as the first argument. Useful in chaining
+   */
   public Value then(final Value deferred, final Value callbacks) throws QueryException {
      if(deferred instanceof XqDeferred) {
        ((XqDeferred)deferred).addCallbacks("then", callbacks);
@@ -84,7 +95,7 @@ public class XqPromise extends QueryModule  {
      } else { throw new QueryException("Can only add callbacks to deferreds."); } 
   }
   
-  /* Attaches a set of done callbacks to an existing promise
+  /* Attaches one or more done callbacks to an existing promise
    * @param promise - Promise to attach callback too
    * @param callbacks - Callbacks to attach
    * @return - The promise passed in as the first argument. Useful in chaining
@@ -96,7 +107,7 @@ public class XqPromise extends QueryModule  {
      } else { throw new QueryException("Can only add callbacks to deferreds."); } 
   }
   
-  /* Attaches a set of always callbacks to an existing promise
+  /* Attaches one or more always callbacks to an existing promise
    * @param promise - Promise to attach callback too
    * @param callbacks - Callbacks to attach
    * @return - The promise passed in as the first argument. Useful in chaining
@@ -108,7 +119,7 @@ public class XqPromise extends QueryModule  {
      } else { throw new QueryException("Can only add callbacks to deferreds."); } 
   }
   
-  /* Attaches a set of fail callbacks to an existing promise
+  /* Attaches one or more fail callbacks to an existing promise
    * @param promise - Promise to attach callback too
    * @param callbacks - Callbacks to attach
    * @return - The promise passed in as the first argument. Useful in chaining
