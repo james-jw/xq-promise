@@ -18,6 +18,7 @@ An implementation of the promise and fork-join patterns for async processing in 
  + [Adding callbacks](#adding-callbacks)
    - [During Creation](#during-creation)
     - [After creation](#after-creation)
+    - [Chaining Helper Functions](#chaining-helper-functions)
     - [Multiple Callbacks per event](#multiple-callbacks-per-event)
  + [when](#when)
 * [The Power of Promises and Parallel Execution](#the-power-of-promises-and-parallel-execution)
@@ -326,11 +327,10 @@ On my machine, the first example without ``fork-join`` took on average 55 second
 That is a clear advantage! Playing around with ``compute size`` and ``max forks``, which I will introduce shortly, I have been able to get this even lower, to around 2 seconds!!
 
 ### fork
-In addition to `fork-join` is the simple `fork` method. The fork method operates much like `defer`, in that it returns a promise which may accept callbacks. Unlike defer however,
-the work is executed immediately in a new thread as opposed to being deferred for later execution. 
+In addition to `fork-join` is the simple `fork` method. The fork method operates much like `defer`, in that it returns a promise which accepts callbacks. Unlike defer however,
+the work its provided is executed immediately in a new thread. This is as opposed to being deferred for later execution. 
 
-For example, lets imagine we want to optimize the performance of a web response. During the processing an external API is queries as well as other internal processing. The internal call is
-not dependend on the external call until the end and thus these operations can run in parrallel. 
+For example, lets imagine we want to optimize the performance of a web response. During the processing, an external API is queried in addition other internal processing. The internal call is not dependend on the external call, until the end, and thus these operations can run in parrallel:
 
 ```xquery
 let $request := http:send-request($req, ?)
@@ -339,10 +339,10 @@ let $hardAnswer := some-heavy-work()
 return
   ($hardAnswer, $promise(()))
 ```
-In the above example, the work of sending the http requerst, and waiting for its response, will be forked immediately letting the main thread continue with computing the `$hardAnswer`. Once 
+In the above example, the work of sending the http request, and waiting for it's response, will be forked immediately letting the main thread continue with computing the `$hardAnswer`. Once 
 that is done, both it and the promise can be returned.
 
-Hopefully its clear now the use cases for both `fork-join` and `fork`.
+Hopefully its clear now what the use cases for both `fork-join` and `fork` are and how to use them!
 
 #### How to interact with shared resources
 With any async process comes the possibility of synchronization problems. Fortunately, XQuery due to its immutable nature is naturally suited to this type of work. Additionally from my limited look at BaseX, the code is very thread safe. Add to this, the introduction of the promise pattern and safe multi-threading appears to be real. 
