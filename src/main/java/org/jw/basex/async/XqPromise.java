@@ -141,14 +141,14 @@ public class XqPromise extends QueryModule  {
    * @return - A promise to retrieve the result from, if required.
    */
   public Value fork(final Value promises) {
-	  List<Future<Value>> out = new ArrayList<Future<Value>>((int)promises.size());
+    List<Future<Value>> out = new ArrayList<Future<Value>>((int)promises.size());
 
-	  for(Value p : promises) {
-        XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(p, 1, new QueryContext(queryContext), null);
-        out.add(executor.submit(task));
-	  }
-	  
-      return new XqDeferred(out);
+    for(Value p : promises) {
+      XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(p, 1, new QueryContext(queryContext), null);
+      out.add(executor.submit(task));
+    }
+
+    return new XqDeferred(out);
   }
 
   /* Forks a piece of work. 
