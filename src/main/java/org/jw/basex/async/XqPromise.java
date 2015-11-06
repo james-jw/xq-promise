@@ -2,7 +2,10 @@ package org.jw.basex.async;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Future;
 
 import org.basex.query.*;
 import org.basex.query.value.*;
@@ -23,6 +26,8 @@ public class XqPromise extends QueryModule  {
 
    private static int threads = Runtime.getRuntime().availableProcessors();
    private static ForkJoinPool pool = new ForkJoinPool(threads);
+ 
+   private static ExecutorService executor = Executors.newFixedThreadPool(threads);
 
    /**
    * @param work - function of work to defer
@@ -136,12 +141,14 @@ public class XqPromise extends QueryModule  {
    * @return - A promise to retrieve the result from, if required.
    */
   public Value fork(final Value promises) {
-      ValueBuilder vb = new ValueBuilder();
-      XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(promises, Integer.parseInt(1 + ""), new QueryContext(queryContext), null, vb.value());
-      List<XqForkJoinTask<Value>> fork = new ArrayList<XqForkJoinTask<Value>>();
-      fork.add(task);
-      
-      return new XqDeferred(pool.invokeAll(fork));
+	  List<Future<Value>> out = new ArrayList<Future<Value>>((int)promises.size());
+
+	  for(Value p : promises) {
+        XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(p, 1, new QueryContext(queryContext), null);
+        out.add(executor.submit(task));
+	  }
+	  
+      return new XqDeferred(out);
   }
 
   /* Forks a piece of work. 
