@@ -17,7 +17,7 @@ import org.basex.query.value.seq.Empty;
  * @author James Wright
  * Implements the promise pattern as well as fork-join for async processing
  */
-public class XqPromise extends QueryModule  {
+public class XqPromise extends QueryModule implements QueryResource  {
 
    public static final Str fail = Str.get("fail");
    public static final Str done = Str.get("done");
@@ -26,8 +26,7 @@ public class XqPromise extends QueryModule  {
 
    private static int threads = Runtime.getRuntime().availableProcessors();
    private static ForkJoinPool pool = new ForkJoinPool(threads);
- 
-   private static ExecutorService executor = Executors.newFixedThreadPool(threads);
+   private static ExecutorService executor = Executors.newCachedThreadPool();
 
    /**
    * @param work - function of work to defer
@@ -140,16 +139,20 @@ public class XqPromise extends QueryModule  {
    * @param - Work or promise chaine to execute
    * @return - A promise to retrieve the result from, if required.
    */
-  public Value fork(final Value promises) {
-    List<Future<Value>> out = new ArrayList<Future<Value>>((int)promises.size());
+	public Value fork(final Value promises) {
+		List<Future<Value>> out = new ArrayList<Future<Value>>((int) promises.size());
 
-    for(Value p : promises) {
-      XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(p, 1, new QueryContext(queryContext), null);
-      out.add(executor.submit(task));
-    }
+		if (executor.isShutdown() || executor.isTerminated()) {
+			executor = Executors.newCachedThreadPool();
+		}
 
-    return new XqDeferred(out);
-  }
+		for (Value p : promises) {
+			XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(p, 1, new QueryContext(queryContext), null);
+			out.add(executor.submit(task));
+		}
+
+		return new XqDeferred(out);
+	}
 
   /* Forks a piece of work. 
    * @param work - Work to fork
@@ -173,6 +176,11 @@ public class XqPromise extends QueryModule  {
   public Value forkJoin(final Value deferreds, Int workSplit) throws QueryException {
     ValueBuilder vb = new ValueBuilder();
     XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(deferreds, Integer.parseInt(workSplit.toString() + ""), new QueryContext(queryContext), null, vb.value());
+    
+    if(pool.isShutdown() || pool.isTerminated()) {
+	   pool = new ForkJoinPool(threads);
+	  }
+    
     return pool.invoke(task);
   }
 
@@ -191,6 +199,12 @@ public class XqPromise extends QueryModule  {
     customPool.shutdown();
     return out;
   }
+
+  @Override
+	public void close() {
+		executor.shutdown();
+		pool.shutdown();
+	}
 }
 
 

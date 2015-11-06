@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!-- xqpm dependency file -->
-<config name="org.jw.basex.async.xq-promse" abbrev="xq-promise" version="1.0">
+<config name="org.jw.basex.async.xq-promse" abbrev="xq-promise" version="0.7.5">
   <dependencies>
     <directory path="{{lib}}">
       <dependency name="xq-promise.jar" type="binary" 
-                  path="https://raw.githubusercontent.com/james-jw/xq-promise/master/target/xq-promise-0.7.4-Beta.jar" />
+                  path="https://raw.githubusercontent.com/james-jw/xq-promise/master/target/xq-promise-0.7.5-Beta.jar" />
     </directory>
   </dependencies>
 </config>
