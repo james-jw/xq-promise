@@ -1,122 +1,96 @@
 package org.jw.basex.async;
 
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.RecursiveTask;
 
-import org.basex.query.*;
-import org.basex.query.value.*;
-import org.basex.query.value.item.*;
+import org.basex.query.QueryContext;
+import org.basex.query.QueryException;
+import org.basex.query.value.Value;
+import org.basex.query.value.ValueBuilder;
+import org.basex.query.value.item.FItem;
 import org.basex.query.value.seq.Empty;
-import org.basex.util.*;
+import org.basex.util.InputInfo;
+import org.basex.util.Util;
 
 /**
- * @author James Wright
- * Forks a set of tasks, performing their computation in parallel followed by rejoining the results.
+ * @author James Wright Forks a set of tasks, performing their computation in
+ *         parallel followed by rejoining the results.
  *
  */
-public class XqForkJoinTask<T extends Value> extends RecursiveTask<Value> implements Callable<T> {
+public class XqForkJoinTask<T extends Value> extends RecursiveTask<Value>implements Callable<T> {
 
-  static final long serialVersionUID = 0L;
+	static final long serialVersionUID = 0L;
 
-  private Value work;
-  @SuppressWarnings("javadoc")
-  private QueryContext qc;
-  @SuppressWarnings("javadoc")
-  private InputInfo ii;
-  /**
-   * Number of workers to compute per fork
-   */
-  private int _computeSize;
+	private Value work;
+	@SuppressWarnings("javadoc")
+	private QueryContext qc;
+	@SuppressWarnings("javadoc")
+	private InputInfo ii;
+	
+	/**
+	 * Number of workers to compute per fork
+	 */
+	private int _computeSize;
+	private long _start;
+	private long _end;
 
-  /**
-   * @param deferreds - Deferred work to fork and rejoin
-   * @param qc - QueryContext
-   * @param ii - Input Information
-   * @param args - Arguments.
-   */
-  public XqForkJoinTask(Value deferreds, int computeSize, QueryContext qcIn, InputInfo iiIn, Value... args) {
-    work = deferreds;
-    qc = qcIn;
-    ii = iiIn;
-    _computeSize = computeSize;
-  }
+	/**
+	 * @param deferreds - Deferred work to fork and rejoin
+	 * @param qc - QueryContext
+	 * @param ii - Input Information
+	 * @param value - Arguments.
+	 */
+	public XqForkJoinTask(Value deferreds, int computeSize, long start, long end, QueryContext qcIn, InputInfo iiIn, Value... value) {
+		work = deferreds;
+		qc = qcIn;
+		ii = iiIn;
+		_start = start;
+		_end = end;
+		_computeSize = computeSize;
+		
+	}
 
-  public XqForkJoinTask(Value deferreds, QueryContext qcIn, InputInfo iiIn, Value... args) {
-    this(deferreds, 2, qcIn, iiIn, args);
-  }
+	public XqForkJoinTask(Value deferreds, long start, long end, QueryContext qcIn, InputInfo iiIn, Value... args) {
+		this(deferreds, 2, start, end, qcIn, iiIn, args);
+	}
 
-  @SuppressWarnings("unchecked")
-  @Override
-  public T call() throws Exception {
-    return (T) compute();
-  }
+	@SuppressWarnings("unchecked")
+	@Override
+	public T call() throws Exception {
+		return (T) compute();
+	}
 
-  @Override
-  protected Value compute() {
-    ValueBuilder vb = new ValueBuilder();
-    List<FItem> myWork = new ArrayList<FItem>(_computeSize);
-
-    // Determine my work
-    int i = 0;
-    for(Item chunk : work) {
-      myWork.add((FItem)chunk);
-      if(i++ == _computeSize - 1) {
-         break;
-      }
-    }
-
-    // Let others start the remaining work
-    XqForkJoinTask<Value>[] subtasks = work.size() <= _computeSize
-        ? new XqForkJoinTask[0] : splitRemainingWorkload(i);
-
-    for(XqForkJoinTask<Value> task : subtasks) {
-      task.fork();
-    }
-
-    // Perform my work
-    try {
-      for(FItem deferred : myWork) {
-        if(deferred.arity() == 0) {
-          vb.add(deferred.invokeValue(qc, ii));
-        } else {
-          Util.notExpected("Invalid input: fork-join can only accept deferred objects or functions with an arity of 0.");
-        }
-      }
-    } catch(QueryException ex) {
-      Util.notExpected("Failed to process fork join", ex);
-    }
-
-    // Rejoin with the others.
-    for(XqForkJoinTask<Value> task : subtasks) {
-      try {
-        vb.add(task.get());
-      } catch(InterruptedException e) {
-        Util.notExpected("Failed to process fork join: ", e);
-      } catch(ExecutionException e) {
-        Util.notExpected("Failed to process fork join: ", e);
-      }
-    }
-
-    return vb.value();
-  }
-
-  /**
-   * @return The combined value of all the split operations results.
-   */
-  private XqForkJoinTask<Value>[] splitRemainingWorkload(int taken) {
-    List<XqForkJoinTask<Value>> subtasks = new ArrayList<XqForkJoinTask<Value>>();
-
-    int length = Integer.parseInt(work.size() + "") - taken;
-
-    Value firstHalf = length == 1 ? work.subSeq(taken, 1) : work.subSeq(taken, length/2  );
-    subtasks.add(new XqForkJoinTask<Value>(firstHalf, new QueryContext(qc), ii, Empty.SEQ));
-
-    if(length > 1) {
-      Value secondHalf = work.subSeq(taken + length/2, length - (length/2));
-      subtasks.add(new XqForkJoinTask<Value>(secondHalf, new QueryContext(qc), ii, Empty.SEQ));
-    }
-
-    return subtasks.toArray(new XqForkJoinTask[0]);
-  }
-
+	@Override
+	protected Value compute() {
+		ValueBuilder vb = new ValueBuilder();
+		long length = _end - _start;
+		if (length <= _computeSize) {
+			// Perform the work
+			try {
+				for (long i = _start, j = 0; i < _end && j < _computeSize; i++, j++) {
+					FItem deferred = (FItem) work.itemAt(i);
+					if (deferred.arity() == 0) {
+						vb.add(deferred.invokeValue(qc, ii));
+					} else {
+						throw new QueryException("Invalid input: fork-join can only accept deferred objects or functions with an arity of 0.");
+					}
+				}
+			} catch (QueryException ex) {
+				this.completeExceptionally(ex);
+				this.cancel(true);
+			}
+		} else {
+			// Split the work
+			long split = length / 2;
+			XqForkJoinTask<Value> second = new XqForkJoinTask<Value>(work, _start + split, _end, new QueryContext(qc), ii, Empty.SEQ);
+			
+			_end = _start + split;
+			
+			second.fork(); 
+			vb.add(this.compute());
+			vb.add((Value)second.join());
+		}
+		
+		return vb.value();
+	}
 }
