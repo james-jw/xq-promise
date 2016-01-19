@@ -136,23 +136,60 @@ A common use case for ``done`` is logging.
 Operates the same as ``done``, except it also is called on the promise's failure, not only success.
 
 #### fail
-Called if the action fails. 
+Called if the action fails. The `fail` callback will be provided the error as a `map(*)` with some 'additional' information. 
 
-A failure occurs if any deferred work or callback function throws an exception.
+```xquery
+map {
+  'code': 'error code',
+  'description': 'error description',
+  'value': 'error value',
+  'module': 'file',
+  'line': 'line number',
+  'column': 'column number',
+  'additional': map {
+     'deferred': 'Function item which failed. Can be used to retry the request',
+     'arguments': 'The arguments provided to the failed deferred.'
+   }
+}
+```
+
+A failure occurs if any deferred work or callback function throws an exception. The `fail` callback allows handling and potentially mitigating these errors during a fork-join process. Without a fail callback an exception will go uncaught and cause the entire query to stop. In essense, adding a fail callback to a fork chain, is equivalent to the `catch` in a try/catch clause. 
+
+The `fail` callback, similar to the `catch` clause has the option of returning a value in place of the failure as opposed to propegating or throwing an error itself. 
+
+```xquery
+promise:defer($work) 
+  => promise:fail(function ($err) {
+      if($err?code = 'XQPTY0005') then 'I fixed it!'
+      else fn:error(xs:QName('local:error'), 'Unfixable error!')
+  })
+```
 
 * Mitigate the failure
 
-If a `fail` callback chain returns a value. The failure will disappear as though no error occurred, 
-with the replaced value returned from the failure callback being used in the result. 
-This is similar to how ``then`` works.
-
-* Fail silently
-
-Alternatively, if the error should simply be ignored, the `fail` callback must return the ``empty-sequence``.
+As just stated, if a `fail` callback chain returns a value. The failure will be handled as though no error occurred, 
+with the replaced value returned from the failure callback being used in the result. If the error should simply be ignored, with no replacement value. The `fail` callback must return the `empty-sequence`.
 
 * Fail miserably
 
 Ultimately, if the failure cannot be mitigated. Throwing an exception within the callback using ``fn:error`` will cause the enitre fork and query to cease.
+
+#### Multiple fail callbacks
+If multiple fail callbacks are added, multiple levels of error handling can be achieved. If the first callback is unable to process the error, it can itself throw an exception, which the second callback will be provided. This will continue until either a callback returns a value instead of erroring, or no further fail callbacks exist. In this ladder case, the query will cease.
+
+Here is an example of two callbacks
+```xquery
+promise:defer($work) 
+    => promise:fail(function ($err) {
+      if($err?code = 'XQPTY0005') 
+      then 'I fixed it!'
+      else fn:error(xs:QName('local:error'), 'Unfixable error!')}) 
+    => promise:fail(function ($err) {
+      if($err?description = 'Unfixable error!') 
+      then 'Never say never!'
+      else fn:error(xs:QName('local:error'), 'Its Fatal!')
+  })
+```
 
 ### Adding callbacks
 There are two ways to add callbacks: 
