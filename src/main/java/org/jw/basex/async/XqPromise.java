@@ -14,6 +14,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import org.basex.query.*;
+import org.basex.query.ann.Annotation;
+import org.basex.query.util.list.AnnList;
 import org.basex.query.value.*;
 import org.basex.query.value.item.*;
 import org.basex.query.value.map.*;
@@ -160,8 +162,9 @@ public class XqPromise extends QueryModule implements QueryResource  {
    *  Forks a piece of work or an unexecuted promise.
    * @param - Work or promise chaine to execute
    * @return - A promise to retrieve the result from, if required.
+ * @throws QueryException 
    */
-	public Value fork(final Value promises) {
+	public Value fork(final Value promises) throws QueryException {
 		List<Future<Value>> out = new ArrayList<Future<Value>>((int) promises.size());
 
 		if (executor.isShutdown() || executor.isTerminated()) {
@@ -244,11 +247,11 @@ public class XqPromise extends QueryModule implements QueryResource  {
    * @throws QueryException
    */
   public Value forkJoin(final Value deferreds, Int workSplit, Int threadsIn) throws QueryException {
-    ForkJoinPool customPool = new ForkJoinPool(Integer.parseInt(threadsIn + ""));
-    XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(deferreds, Integer.parseInt(workSplit.toString() + ""), 0l, deferreds.size(), new QueryContext(queryContext), null);
-    Value out = customPool.invoke(task);
-    customPool.shutdown();
-    return out;
+	    ForkJoinPool customPool = new ForkJoinPool(Integer.parseInt(threadsIn + ""));
+	    XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(deferreds, Integer.parseInt(workSplit.toString() + ""), 0l, deferreds.size(), new QueryContext(queryContext), null);
+	    Value out = customPool.invoke(task);
+	    customPool.shutdown();
+	    return out;
   }
 
 	@Override
@@ -261,6 +264,14 @@ public class XqPromise extends QueryModule implements QueryResource  {
 		}
 
 		pool.shutdown();
+	}
+	
+	public static void ensureNotUpdatingFunction(FItem item) throws QueryException {
+		FItem cb = (FItem) item;
+	  	AnnList anns = cb.annotations();
+	  	if(anns != null && anns.contains(Annotation.UPDATING)) {
+	  		throw new QueryException("Error: Updating expressions are not allowed in 'xq-promise' callbacks.");
+	  	}
 	}
 
 	public static FItem get_errorMapFunction() {

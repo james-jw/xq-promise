@@ -2,6 +2,9 @@ package org.jw.basex.async;
 
 import static org.basex.query.QueryError.*;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -9,6 +12,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import org.basex.query.*;
+import org.basex.query.ann.Annotation;
 import org.basex.query.expr.*;
 import org.basex.query.util.list.*;
 import org.basex.query.value.*;
@@ -55,6 +59,7 @@ public class XqDeferred extends FItem implements XQFunction {
    */
   public XqDeferred(final FItem work, final Value args, final Map callbacksIn) throws QueryException {
     super(SeqType.ANY_FUN, new AnnList());
+    XqPromise.ensureNotUpdatingFunction(work);
     _work = new FItem[] { work };
     _arguments = args;
     addCallbacks(callbacksIn);
@@ -66,13 +71,9 @@ public class XqDeferred extends FItem implements XQFunction {
     _work = new FItem[(int) deferreds.size()];
     int i = 0;
     for(Item item : deferreds) {
+      XqPromise.ensureNotUpdatingFunction((FItem) item);
       _work[i++] = (FItem) item;
     }
-  }
-
-  public XqDeferred(final FItem[] deferreds) {
-    super(SeqType.ANY_FUN, new AnnList());
-    _work = deferreds;
   }
 
   public XqDeferred(final List<Future<Value>> futures) {
@@ -98,6 +99,10 @@ public class XqDeferred extends FItem implements XQFunction {
   
   public void addCallbacks(String name, Value... callbacksIn) throws QueryException {
     if(callbacksIn == null) { return; }
+    if(_futures != null) {
+    	throw new QueryException("Deferred busy due to an earlier call to 'fork'. Queue the callbacks before forking the work.");
+    }
+    
     if(name.matches("^(done|fail|always|then)$") == false) {
       throw new QueryException("Invalid callback name provided: " + name); 
     }
@@ -113,6 +118,8 @@ public class XqDeferred extends FItem implements XQFunction {
 
     for(Value callback : callbacksIn) {
       if(callback instanceof FItem) {
+    	XqPromise.ensureNotUpdatingFunction((FItem)callback);
+    	
         existing.add((FItem)callback);
       } else if(callback.size() > 0) {
         addCallbacks(name, valueToArray(callback));
@@ -165,21 +172,49 @@ public class XqDeferred extends FItem implements XQFunction {
       }
     } catch (QueryException e) {
       failed = true;
-      String msg = e.getMessage();
-      notifyCallbacks(getCallbacks(XqPromise.always, ii), qc, ii, Str.get(msg == null ? "" : msg));
-      out = notifyCallbacks(getCallbacks(XqPromise.fail, ii), qc, ii, args);
+      Value err = this.mapError(e, qc, ii, args);
+      notifyCallbacks(getCallbacks(XqPromise.always, ii), qc, ii, err);
+      out = notifyFailCallback(err, e, qc, ii, args);
+    } catch (Throwable e) {
+    	try {
+			File writer = new File("C:\\xq-promise-deferred.log");
+			PrintStream ps = new PrintStream(writer);
+			e.printStackTrace(ps);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+    	
+    	throw e;
     }
 
     if(!failed) {
-      out = processThen(out, qc, ii);
+      out = notifyThenCallback(out, qc, ii);
       notifyCallbacks(getCallbacks(XqPromise.done, ii), qc, ii, out);
       notifyCallbacks(getCallbacks(XqPromise.always, ii), qc, ii, out);
     }
 
     return out;
   }
-  
-  private Value processNormalInvocation(QueryContext qc, InputInfo ii, Value... args) throws QueryException {
+
+	private Value mapError(QueryException e, QueryContext qc, InputInfo ii, Value... args) throws QueryException {
+		ValueBuilder eb = new ValueBuilder();
+
+		eb.add(Str.get(e.error() == null ? e.qname().toString(): e.error().code));
+		eb.add(Str.get(e.getLocalizedMessage()));
+		eb.add(Str.get(e.file()));
+		eb.add(Int.get(e.line()));
+		eb.add(Int.get(e.column()));
+		eb.add(Array.from(this._work));
+		eb.add(Array.from(args));
+
+		if (e.value() != null) {
+			eb.add(e.value());
+		}
+
+		return XqPromise.get_errorMapFunction().invokeValue(qc, ii, eb.value());
+	}
+
+   private Value processNormalInvocation(QueryContext qc, InputInfo ii, Value... args) throws QueryException {
     ValueBuilder vb = new ValueBuilder();
     for(FItem work : _work) {
       vb.add(invokeFunctionItem(work, qc, ii, args));
@@ -243,7 +278,7 @@ public class XqDeferred extends FItem implements XQFunction {
    * @throws QueryException
    */
   @SuppressWarnings("javadoc")
-  private Value processThen(Value in, QueryContext qc, InputInfo ii) throws QueryException {
+  private Value notifyThenCallback(Value in, QueryContext qc, InputInfo ii) throws QueryException {
     List<FItem> handlers = getCallbacks(XqPromise.then, ii);
     Value lastResult = in;
     if(handlers != null) {
@@ -252,6 +287,39 @@ public class XqDeferred extends FItem implements XQFunction {
       }
     }
     return lastResult;
+  }
+  
+  /**
+   * Calls the first error handler, passing its result to the pipeline.
+   * If the error handler throws an exception and a second error handler exists,
+   * that handler will be called with the error.
+   * 
+   * This continues until either a value or empty sequence is returned or an error is thrown. 
+   * If an error is thrown. The entire process is stopped.
+   */
+  @SuppressWarnings("javadoc")
+  private Value notifyFailCallback(Value err, QueryException rawError, QueryContext qc, InputInfo ii, Value... args) throws QueryException {
+    List<FItem> handlers = getCallbacks(XqPromise.fail, ii);
+    if(handlers != null && handlers.size() > 0) {
+      Value lastResult = err;
+      for(final FItem item : handlers) {
+    	  try {
+    		  lastResult = invokeFunctionItem(item, qc, ii, lastResult);
+    		  break;
+    	  } catch (QueryException ex) {
+    		  if(handlers.get(handlers.size() - 1) == item) {
+    			  // Error was thrown from the last error handler, oh well
+    			  throw ex;
+    		  }
+    		  
+    		  lastResult = mapError(ex, qc, ii, lastResult);
+    	  }
+      }
+      
+      return lastResult;
+    } else {
+      throw new QueryException(rawError);
+    }
   }
 
   /**
@@ -311,8 +379,7 @@ public class XqDeferred extends FItem implements XQFunction {
 
   @Override
   public Object toJava() throws QueryException {
-    // TODO Auto-generated method stub
-    return null;
+    return this;
   }
 
   @Override
@@ -321,8 +388,6 @@ public class XqDeferred extends FItem implements XQFunction {
   }
 
   @Override
-  public void plan(FElem root) {
-     // TODO
-  }
+  public void plan(FElem root) {  }
 
 }

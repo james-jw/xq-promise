@@ -39,9 +39,20 @@ public class XqForkJoinTask<T extends Value> extends RecursiveTask<Value>impleme
 	 * @param qc - QueryContext
 	 * @param ii - Input Information
 	 * @param value - Arguments.
+	 * @throws QueryException 
 	 */
-	public XqForkJoinTask(Value deferreds, int computeSize, long start, long end, QueryContext qcIn, InputInfo iiIn, Value... value) {
+	public XqForkJoinTask(Value deferreds, int computeSize, long start, long end, QueryContext qcIn, InputInfo iiIn, Value... value) throws QueryException {
 		work = deferreds;
+		
+		for(Value deferred : deferreds) {
+			if(deferred instanceof FItem && !(deferred instanceof XqDeferred)) {
+				XqPromise.ensureNotUpdatingFunction((FItem) deferred);
+				if (((FItem)deferred).arity() != 0) {
+					throw new QueryException("Invalid input: fork-join can only accept deferred objects, or zero arity functions.");
+				}
+			}
+		}
+		
 		qc = qcIn;
 		ii = iiIn;
 		_start = start;
@@ -50,7 +61,7 @@ public class XqForkJoinTask<T extends Value> extends RecursiveTask<Value>impleme
 		
 	}
 
-	public XqForkJoinTask(Value deferreds, long start, long end, QueryContext qcIn, InputInfo iiIn, Value... args) {
+	public XqForkJoinTask(Value deferreds, long start, long end, QueryContext qcIn, InputInfo iiIn, Value... args) throws QueryException {
 		this(deferreds, 2, start, end, qcIn, iiIn, args);
 	}
 
@@ -69,11 +80,7 @@ public class XqForkJoinTask<T extends Value> extends RecursiveTask<Value>impleme
 			try {
 				for (long i = _start, j = 0; i < _end && j < _computeSize; i++, j++) {
 					FItem deferred = (FItem) work.itemAt(i);
-					if (deferred.arity() == 0) {
-						vb.add(deferred.invokeValue(qc, ii));
-					} else {
-						throw new QueryException("Invalid input: fork-join can only accept deferred objects or functions with an arity of 0.");
-					}
+					vb.add(deferred.invokeValue(qc, ii));
 				}
 			} catch (QueryException ex) {
 				this.completeExceptionally(ex);
@@ -82,13 +89,15 @@ public class XqForkJoinTask<T extends Value> extends RecursiveTask<Value>impleme
 		} else {
 			// Split the work
 			long split = length / 2;
-			XqForkJoinTask<Value> second = new XqForkJoinTask<Value>(work, _start + split, _end, new QueryContext(qc), ii, Empty.SEQ);
-			
-			_end = _start + split;
-			
-			second.fork(); 
-			vb.add(this.compute());
-			vb.add((Value)second.join());
+			XqForkJoinTask<Value> second;
+			try {
+				second = new XqForkJoinTask<Value>(work, _start + split, _end, new QueryContext(qc), ii, Empty.SEQ);
+				_end = _start + split;
+				
+				second.fork(); 
+				vb.add(this.compute());
+				vb.add((Value)second.join());
+			} catch (QueryException e) {}
 		}
 		
 		return vb.value();

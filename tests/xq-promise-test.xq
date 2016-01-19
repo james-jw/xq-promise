@@ -1,5 +1,5 @@
 module namespace test = 'http://basex.org/modules/xqunit-tests';
-import module namespace promise = 'org.jw.basex.async.xq-promise'; 
+import module namespace promise = 'https://github.com/james-jw/xq-promise';
 
 declare %unit:test function test:promise() {
    let $work := function ($name) {
@@ -32,7 +32,7 @@ declare %unit:test function test:callbacks-fail() {
 
 declare %unit:test function test:callbacks-fail-fix-value() {
   let $callback := function () { 'Hello world!' }
-  let $work := promise:defer(function () { fn:error('Failed!') })
+  let $work := promise:defer(function () { fn:error(xs:QName('promise:error'), 'Failed!') })
   let $promise := promise:attach($work, map { 'fail': $callback })
   return
     unit:assert-equals($promise(), 'Hello world!')
@@ -63,12 +63,12 @@ declare %unit:test function test:callback-then() {
 declare %unit:test function test:callback-always-on-fail() {
   let $type := 'always'
   let $path := file:temp-dir() || $type || '.txt'
-  let $callback := file:write-text($path, ?)
-  let $failedWork := function () { fn:error("Failed!") }
+  let $callback := function ($err) { file:write-text($path, $err?description) }
+  let $failedWork := function () { fn:error(xs:QName('promise:error'), "Failed!") }
   let $work := promise:defer($failedWork, $type)
   let $promise := promise:attach($work, map { $type: $callback })
   return
-    ($promise(), unit:assert-equals(file:exists($path), true()), file:delete($path))
+    (try { $promise() } catch * {()}, unit:assert-equals(file:exists($path), true()), file:delete($path))
 };
 
 declare %unit:test function test:multiple-callbacks() {
@@ -187,8 +187,11 @@ declare %unit:test function test:fork() {
 
 declare %unit:test function test:fork-with-callback() {
   let $worker := function($fname) { 'Hello, ' || $fname }
-  let $future := promise:fork($worker, 'every')
-          => promise:then(function($str) { $str || ' one' })
+  let $future := 
+       promise:fork(
+         promise:defer($worker, 'every') 
+           => promise:then(function($str) { $str || ' one' })
+       )
   return
      unit:assert-equals($future(), 'Hello, every one')
 };
@@ -240,9 +243,9 @@ declare %unit:test function test:always-helper() {
 declare %unit:test function test:fail-helper() {
   let $type := 'fail'
   let $path := file:temp-dir() || $type || '.txt'
-  let $callback := file:write-text($path, ?)
+  let $callback := function ($err) { file:write-text($path, $err?description) }
   let $promise := 
-      promise:defer(fn:error(?), 'world') 
+      promise:defer(function () { error(xs:QName('promise:error')) }, 'world') 
         => promise:fail($callback)
   return
    ($promise(), unit:assert(file:exists($path)), file:delete($path))
@@ -265,9 +268,100 @@ declare %unit:test function test:helper-chain() {
 };
 
 declare %unit:test function test:fork-eval() {
-   let $query := '1 to 100'
+   let $query := '1 to 100 ! (.)'
    let $promise := promise:fork(xquery:eval(?), $query)
    return 
      (unit:assert-equals(count($promise()),100 ))
 };
 
+declare %unit:test function test:ad-callback-to-busy-deferred() {
+  try {
+   let $query := '1 to 100 ! (.)'
+   let $promise := promise:fork(xquery:eval(?), $query)
+           => promise:then(trace(?, 'The end!'))
+   return 
+         (unit:assert-equals(count($promise()),100 ))
+  } catch * {
+    if($err:description => matches('busy')) then ()
+    else error(xs:QName('test:error'), ('Should have thrown busy deferred error'))
+  }
+};
+
+declare updating function test:updating($item) {
+  db:create('test-updating-function')
+};
+
+declare %unit:test function test:updating-deferred-not-allowed() {
+  try { (
+    promise:defer(test:updating(?)),
+    fn:error(xs:QName('test:error'), 'Should have thrown updating deferred error') 
+  )} catch * {
+    if($err:description => matches('Updating expressions are not allowed')) then ()
+    else fn:error(xs:QName('test:error'), 'Should have thrown updating deferred error') 
+  } 
+};
+
+declare %unit:test function test:updating-fork-not-allowed() {
+  try { (
+    promise:fork(test:updating(?)),
+    fn:error(xs:QName('test:error'), 'Should have thrown updating deferred error') 
+  )} catch * {
+    if($err:description => matches('Updating expressions are not allowed')) then ()
+    else fn:error(xs:QName('test:error'), 'Should have thrown updating deferred error') 
+  } 
+};
+
+declare %unit:test function test:updating-callback-not-allowed() {
+  try { (
+     promise:defer(trace(?))
+       => promise:done(test:updating(?)),
+    fn:error(xs:QName('test:error'), 'Should have thrown updating deferred error') 
+  )} catch * {
+    if($err:description => matches('Updating expressions are not allowed')) then ()
+    else fn:error(xs:QName('test:error'), 'Should have thrown updating deferred error') 
+  } 
+};
+
+declare function test:transform-test($item, $i) {
+  <element>{$i}</element>
+};
+
+declare %unit:test function test:fork-transformation() {
+  let $node := <test-element></test-element>
+  let $promises := 
+    for $i in (1 to 100) return
+    promise:defer(test:transform-test(?, $i), $node)
+  return
+    unit:assert-equals(sum(promise:fork-join($promises)), 5050)
+};
+
+(:
+
+import module namespace p = 'https://github.com/james-jw/xq-promise';
+
+declare function local:fail($err) {
+  if($err?description != 'Failed, but its okay...') 
+  then 1000
+  else error(xs:QName('p:failure'), 'Could not cope.')
+};
+
+declare function local:is-copable($err) {
+  if($err?description != 'Could not cope.')
+  then error(xs:QName('p:failure'), 'Fatal Error!')
+  else 2222
+};
+
+declare function local:work($input) {
+  if($input = (1, 5, 12))
+  then error(xs:QName('p:failure'), 'Failed, but its okay...')
+  else $input
+};
+
+(for $in in (1 to 100)
+return
+ p:defer(local:work(?), $in) 
+   => p:fail(local:fail(?))
+   => p:fail(local:is-copable(?))
+ )! .()
+
+:)

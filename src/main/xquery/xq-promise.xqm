@@ -80,6 +80,13 @@ declare function p:when($deferreds as function(*)*) as function (*) {
 };
 
 (:~ 
+ : Combines a set of promises into a single promise and applies a set of callbacks
+ :)
+declare function p:when($deferreds as function(*)*, $callbacks as map(*)) {
+  promise:when($deferreds, $callbacks)
+};
+
+(:~ 
  : Adds the callbacks provided to the appropriate chains on the provided deferreds
  :)
 declare function p:attach($deferred as function(*), $callbacks as map(*)) as function (*) {
@@ -95,10 +102,43 @@ declare function p:fork($work as function(*)) as function(*) {
 };
 
 (:~ 
+ : Forks the provided functions or deferred work in a new thread. Returns a sealed promise
+ : which can no long accept callbacks.
+ :)
+declare function p:fork($work as function(*), $arguments as item()*) as function(*) {
+  promise:fork($work, $arguments)
+};
+
+(:~ 
  : Forks the provided functions or deferred work in a fork join fashion, returning the results once all
  : forked computation is complete.
  :)
 declare function p:fork-join($work as function(*)*) as item()* {
   promise:fork-join($work)
 };
+
+(:~ 
+ : Forks the provided functions or deferred work in a fork join fashion, returning the results once all
+ : forked computation is complete.
+ :)
+declare function p:fork-join($work as function(*)*, $compute-size as xs:integer) as item()* {
+  promise:fork-join($work, $compute-size)
+};
+
+(:~ 
+ : Forks the provided functions or deferred work in a fork join fashion, returning the results once all
+ : forked computation is complete.
+ :)
+declare function p:fork-join($work as function(*)*, $compute-size as xs:integer, $max-forks as xs:integer) as item()* {
+  promise:fork-join($work, $compute-size, $max-forks)
+};
+
+(:~ 
+ : Denotes is a function is a deferred promise
+ :)
+declare function p:is-promise($function as function(*)) as xs:boolean {
+  promise:is-promise($function)
+};
+
+
 
