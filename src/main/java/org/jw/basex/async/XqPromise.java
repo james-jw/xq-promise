@@ -1,11 +1,17 @@
 package org.jw.basex.async;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 import org.basex.query.*;
 import org.basex.query.value.*;
@@ -27,6 +33,16 @@ public class XqPromise extends QueryModule implements QueryResource  {
    private static int threads = Runtime.getRuntime().availableProcessors();
    private static ForkJoinPool pool = new ForkJoinPool(threads);
    private static ExecutorService executor = Executors.newCachedThreadPool();
+   private static FItem _errorMapFunction;
+   
+   /**
+    * Sets the array to a mapping function provided by the XQuery environment
+    * @param mapFunction
+    */
+   public Value init(final FItem mapFunction) {
+	   set_errorMapFunction(mapFunction); 
+	   return (new ValueBuilder().value());
+   }
 
    /**
    * @param work - function of work to defer
@@ -87,7 +103,9 @@ public class XqPromise extends QueryModule implements QueryResource  {
        return deferred;
      } else { throw new QueryException("Can only add callbacks to deferreds."); } 
   }
-  /* Attaches one or more then callbacks to an existing promise
+  
+  /** 
+   * Attaches one or more then callbacks to an existing promise
    * @param promise - Promise to attach callback too
    * @param callbacks - Callbacks to attach
    * @return - The promise passed in as the first argument. Useful in chaining
@@ -99,7 +117,8 @@ public class XqPromise extends QueryModule implements QueryResource  {
      } else { throw new QueryException("Can only add callbacks to deferreds."); } 
   }
   
-  /* Attaches one or more done callbacks to an existing promise
+  /**
+   * Attaches one or more done callbacks to an existing promise
    * @param promise - Promise to attach callback too
    * @param callbacks - Callbacks to attach
    * @return - The promise passed in as the first argument. Useful in chaining
@@ -111,7 +130,8 @@ public class XqPromise extends QueryModule implements QueryResource  {
      } else { throw new QueryException("Can only add callbacks to deferreds."); } 
   }
   
-  /* Attaches one or more always callbacks to an existing promise
+  /**
+   * Attaches one or more always callbacks to an existing promise
    * @param promise - Promise to attach callback too
    * @param callbacks - Callbacks to attach
    * @return - The promise passed in as the first argument. Useful in chaining
@@ -123,7 +143,8 @@ public class XqPromise extends QueryModule implements QueryResource  {
      } else { throw new QueryException("Can only add callbacks to deferreds."); } 
   }
   
-  /* Attaches one or more fail callbacks to an existing promise
+  /**
+   * Attaches one or more fail callbacks to an existing promise
    * @param promise - Promise to attach callback too
    * @param callbacks - Callbacks to attach
    * @return - The promise passed in as the first argument. Useful in chaining
@@ -135,7 +156,8 @@ public class XqPromise extends QueryModule implements QueryResource  {
      } else { throw new QueryException("Can only add callbacks to deferreds."); } 
   }
 
-  /* Forks a piece of work or an unexecuted promise.
+  /**
+   *  Forks a piece of work or an unexecuted promise.
    * @param - Work or promise chaine to execute
    * @return - A promise to retrieve the result from, if required.
    */
@@ -147,14 +169,15 @@ public class XqPromise extends QueryModule implements QueryResource  {
 		}
 
 		for (Value p : promises) {
-			XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(p, 1, new QueryContext(queryContext), null);
+			XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(p, 1, 0l, promises.size(), new QueryContext(queryContext), null);
 			out.add(executor.submit(task));
 		}
 
 		return new XqDeferred(out);
 	}
 
-  /* Forks a piece of work. 
+  /**
+   *  Forks a piece of work. 
    * @param work - Work to fork
    * @param arguments - Arguments to provide to the work
    * @return - A promise to retrieve the result from, if required.
@@ -164,7 +187,7 @@ public class XqPromise extends QueryModule implements QueryResource  {
   }
 
   public Value forkJoin(final Value deferreds) throws QueryException {
-    return forkJoin(deferreds, Int.get(2)); 
+    return forkJoin(deferreds, Int.get(1)); 
   }
 
   /**
@@ -175,13 +198,42 @@ public class XqPromise extends QueryModule implements QueryResource  {
    */
   public Value forkJoin(final Value deferreds, Int workSplit) throws QueryException {
     ValueBuilder vb = new ValueBuilder();
-    XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(deferreds, Integer.parseInt(workSplit.toString() + ""), new QueryContext(queryContext), null, vb.value());
+    XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(deferreds, Integer.parseInt(workSplit.toString() + ""), 0l, 
+    		deferreds.size(), new QueryContext(queryContext), null, vb.value());
     
     if(pool.isShutdown() || pool.isTerminated()) {
 	   pool = new ForkJoinPool(threads);
-	  }
+	}
     
-    return pool.invoke(task);
+    try { 
+    	return pool.invoke(task); 
+    } catch (Exception e) { 
+    	String path = System.getProperty("user.home") + File.separator + "xq-promise.log";
+    	
+    	try {
+			File writer = new File(path);
+			PrintStream ps = new PrintStream(writer);
+			e.printStackTrace(ps);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+    	
+    	QueryException cause = (QueryException) findQueryException(e);
+    	if(cause != null) {
+    		throw cause;
+    	}
+        
+    	String msg = "Fork-join failed: POTENTIAL BUG with xq-promise! ... Stack Trace: (" + path + ")";
+        throw new QueryException(msg + e.toString());
+    }
+  }
+  
+  private Throwable findQueryException(Throwable e) {
+	  Throwable out = e.getCause();
+	  if(out == null || out instanceof QueryException) {
+		  return out;
+	  }
+	  return findQueryException(out);
   }
 
   /**
@@ -192,18 +244,31 @@ public class XqPromise extends QueryModule implements QueryResource  {
    * @throws QueryException
    */
   public Value forkJoin(final Value deferreds, Int workSplit, Int threadsIn) throws QueryException {
-    ValueBuilder vb = new ValueBuilder();
     ForkJoinPool customPool = new ForkJoinPool(Integer.parseInt(threadsIn + ""));
-    XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(deferreds, Integer.parseInt(workSplit.toString() + ""), new QueryContext(queryContext), null, vb.value());
+    XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(deferreds, Integer.parseInt(workSplit.toString() + ""), 0l, deferreds.size(), new QueryContext(queryContext), null);
     Value out = customPool.invoke(task);
     customPool.shutdown();
     return out;
   }
 
-  @Override
+	@Override
 	public void close() {
 		executor.shutdown();
+		try {
+			executor.awaitTermination(1, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
 		pool.shutdown();
+	}
+
+	public static FItem get_errorMapFunction() {
+		return _errorMapFunction;
+	}
+
+	public static void set_errorMapFunction(FItem mapFunction) {
+		_errorMapFunction = mapFunction;
 	}
 }
 
