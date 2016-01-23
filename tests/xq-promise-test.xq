@@ -323,45 +323,28 @@ declare %unit:test function test:updating-callback-not-allowed() {
 };
 
 declare function test:transform-test($item, $i) {
-  <element>{$i}</element>
+  copy $out := $item
+  modify (
+    rename node $out as 'test-renamed',
+    insert node element value {$i} into $out
+  ) return $out
+};
+
+declare function test:insert-attribute($item, $i) {
+  copy $out := $item
+  modify insert node attribute id {$i + 1} into $out
+  return $out
 };
 
 declare %unit:test function test:fork-transformation() {
   let $node := <test-element></test-element>
   let $promises := 
-    for $i in (1 to 100) return
+    for $i in (1 to 1000) return
     promise:defer(test:transform-test(?, $i), $node)
-  return
-    unit:assert-equals(sum(promise:fork-join($promises)), 5050)
+     => promise:then(test:insert-attribute(?, $i))
+  let $results := promise:fork-join($promises) 
+  return (
+    unit:assert-equals(sum($results), 500500),
+    unit:assert-equals(sum($results/@id), 501500)
+  )
 };
-
-(:
-
-import module namespace p = 'https://github.com/james-jw/xq-promise';
-
-declare function local:fail($err) {
-  if($err?description != 'Failed, but its okay...') 
-  then 1000
-  else error(xs:QName('p:failure'), 'Could not cope.')
-};
-
-declare function local:is-copable($err) {
-  if($err?description != 'Could not cope.')
-  then error(xs:QName('p:failure'), 'Fatal Error!')
-  else 2222
-};
-
-declare function local:work($input) {
-  if($input = (1, 5, 12))
-  then error(xs:QName('p:failure'), 'Failed, but its okay...')
-  else $input
-};
-
-(for $in in (1 to 100)
-return
- p:defer(local:work(?), $in) 
-   => p:fail(local:fail(?))
-   => p:fail(local:is-copable(?))
- )! .()
-
-:)

@@ -172,7 +172,7 @@ public class XqPromise extends QueryModule implements QueryResource  {
 		}
 
 		for (Value p : promises) {
-			XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(p, 1, 0l, promises.size(), new QueryContext(queryContext), null);
+			XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(p, 2, 0l, promises.size(), new QueryContext(queryContext, true), null);
 			out.add(executor.submit(task));
 		}
 
@@ -202,7 +202,7 @@ public class XqPromise extends QueryModule implements QueryResource  {
   public Value forkJoin(final Value deferreds, Int workSplit) throws QueryException {
     ValueBuilder vb = new ValueBuilder();
     XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(deferreds, Integer.parseInt(workSplit.toString() + ""), 0l, 
-    		deferreds.size(), new QueryContext(queryContext), null, vb.value());
+    		deferreds.size(), new QueryContext(queryContext, true), null, vb.value());
     
     if(pool.isShutdown() || pool.isTerminated()) {
 	   pool = new ForkJoinPool(threads);
@@ -248,7 +248,7 @@ public class XqPromise extends QueryModule implements QueryResource  {
    */
   public Value forkJoin(final Value deferreds, Int workSplit, Int threadsIn) throws QueryException {
 	    ForkJoinPool customPool = new ForkJoinPool(Integer.parseInt(threadsIn + ""));
-	    XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(deferreds, Integer.parseInt(workSplit.toString() + ""), 0l, deferreds.size(), new QueryContext(queryContext), null);
+	    XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(deferreds, Integer.parseInt(workSplit.toString() + ""), 0l, deferreds.size(), new QueryContext(queryContext, true), null);
 	    Value out = customPool.invoke(task);
 	    customPool.shutdown();
 	    return out;

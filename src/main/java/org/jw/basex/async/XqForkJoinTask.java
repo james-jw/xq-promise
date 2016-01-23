@@ -5,6 +5,8 @@ import java.util.concurrent.RecursiveTask;
 
 import org.basex.query.QueryContext;
 import org.basex.query.QueryException;
+import org.basex.query.up.ContextModifier;
+import org.basex.query.up.Updates;
 import org.basex.query.value.Value;
 import org.basex.query.value.ValueBuilder;
 import org.basex.query.value.item.FItem;
@@ -91,7 +93,8 @@ public class XqForkJoinTask<T extends Value> extends RecursiveTask<Value>impleme
 			long split = length / 2;
 			XqForkJoinTask<Value> second;
 			try {
-				second = new XqForkJoinTask<Value>(work, _start + split, _end, new QueryContext(qc), ii, Empty.SEQ);
+				QueryContext subQc = new QueryContext(qc, true);
+				second = new XqForkJoinTask<Value>(work, _computeSize, _start + split, _end, subQc , ii, Empty.SEQ);
 				_end = _start + split;
 				
 				second.fork(); 

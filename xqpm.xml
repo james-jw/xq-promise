@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!-- xqpm dependency file -->
-<config name="org.jw.basex.async.xq-promse" abbrev="xq-promise" version="0.7.5">
+<config name="org.jw.basex.async.xq-promse" abbrev="xq-promise" version="0.8.0">
   <dependencies>
     <directory path="{{lib}}">
       <dependency name="xq-promise.jar" type="binary" 

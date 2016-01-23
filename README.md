@@ -6,7 +6,7 @@ An implementation of the promise and fork-join patterns for async processing in 
 * [Thanks!](#thanks)
 * [Installation](#installation)
  + [Declaration](#declaration)
- + [Version 0.7.5-BETA](#version-075-beta)
+ + [Version 0.8.0-BETA](#version-080-beta)
  + [Dependencies](#dependencies)
 * [The Basics of a Promise](#the-basics-of-a-promise)
  + [defer](#defer)
@@ -68,7 +68,7 @@ To use the module in your scripts simple import it like so:
 import module namespace promise = 'org.jw.basex.async.xq-promise';
 ```
 
-### Version 0.7.5-BETA
+### Version 0.8.0-BETA
 This module is currently in Beta and should be used with caution. Especially in scenarios involving the
 writing of sensitive data. 
 
@@ -153,6 +153,35 @@ Alternatively, if the error should simply be ignored, the `fail` callback must r
 * Fail miserably
 
 Ultimately, if the failure cannot be mitigated. Throwing an exception within the callback using ``fn:error`` will cause the enitre fork and query to cease.
+
+```xquery
+import module namespace p = 'https://github.com/james-jw/xq-promise';
+
+declare function local:fail($err) {
+  if($err?description != 'Failed, but its okay...') 
+  then 1000
+  else error(xs:QName('p:failure'), 'Could not fix.')
+};
+
+declare function local:is-fixable($err) {
+  if($err?description != 'Could not fix.')
+  then error(xs:QName('p:failure'), 'Fatal Error!')
+  else 2222
+};
+
+declare function local:work($input) {
+  if($input = (1, 5, 12))
+  then error(xs:QName('p:failure'), 'Failed, but its okay...')
+  else $input
+};
+
+(for $in in (1 to 100)
+return
+ p:defer(local:work(?), $in) 
+   => p:fail(local:fail(?))
+   => p:fail(local:is-fixable(?))
+ )! .()
+```
 
 ### Adding callbacks
 There are two ways to add callbacks: 
