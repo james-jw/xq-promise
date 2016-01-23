@@ -136,77 +136,74 @@ A common use case for ``done`` is logging.
 Operates the same as ``done``, except it also is called on the promise's failure, not only success.
 
 #### fail
-Called if the action fails. 
-
-A failure occurs if any deferred work or callback function throws an exception.
-
-* Mitigate the failure
-
-If a `fail` callback chain returns a value. The failure will disappear as though no error occurred, 
-with the replaced value returned from the failure callback being used in the result. 
-This is similar to how ``then`` works.
-
-* Fail silently
-
-Alternatively, if the error should simply be ignored, the `fail` callback must return the ``empty-sequence``.
-
-* Fail miserably
-
-Ultimately, if the failure cannot be mitigated. Throwing an exception within the callback using ``fn:error`` will cause the enitre fork and query to cease.
+Called if the action fails. The `fail` callback will be provided the error as a `map(*)` with some 'additional' information. 
 
 ```xquery
-import module namespace p = 'https://github.com/james-jw/xq-promise';
+map {
+  'code': 'error code',
+  'description': 'error description',
+  'value': 'error value',
+  'module': 'file',
+  'line': 'line number',
+  'column': 'column number',
+  'additional': map {
+     'deferred': 'Function item which failed. Can be used to retry the request',
+     'arguments': 'The arguments provided to the failed deferred.'
+   }
+}
+```
 
-declare function local:fail($err) {
-  if($err?description != 'Failed, but its okay...') 
-  then 1000
-  else error(xs:QName('p:failure'), 'Could not fix.')
-};
+A failure occurs if any deferred work or callback function throws an exception. The `fail` callback allows handling and potentially mitigating these errors during a fork-join process. Without a fail callback an exception will go uncaught and cause the entire query to stop. In essense, adding a fail callback to a deferred chain, is equivalent to the `catch` in a try/catch clause. 
 
-declare function local:is-fixable($err) {
-  if($err?description != 'Could not fix.')
-  then error(xs:QName('p:failure'), 'Fatal Error!')
-  else 2222
-};
+Also similar to the `catch` clause, the `fail` callback has the option of returning a value as opposed to propegating or throwing an error itself. 
 
-declare function local:work($input) {
-  if($input = (1, 5, 12))
-  then error(xs:QName('p:failure'), 'Failed, but its okay...')
-  else $input
-};
+```xquery
+promise:defer($work) 
+  => promise:fail(function ($err) {
+      if($err?code = 'XQPTY0005') then 'I fixed it!'
+      else fn:error(xs:QName('local:error'), 'Unfixable error!')
+  })
+```
 
-(for $in in (1 to 100)
-return
- p:defer(local:work(?), $in) 
-   => p:fail(local:fail(?))
-   => p:fail(local:is-fixable(?))
- )! .()
+In the above example we see that if the `$err?code` returned matches `XQPTY0005`, error will be mitigated and the result of that chain of work will be the value `I fixed it!`. 
+
+The simply logic is, if a `fail` callback chain returns a value, the failure will be handled with the value returned from the fail callback replaced in the result. 
+
+If no suitable replacement value exists, but the error should simply be ignored. The `fail` callback should return the `empty-sequence`.
+
+```xquery
+promise:defer($work) 
+  => promise:fail(function ($err) {
+      if($err?code = 'XQPTY0005') then () (: Ignore the error and return nothing :)
+      else fn:error(xs:QName('local:error'), 'Unfixable error!')
+  })
+```
+
+In this example the error code `XQPTY0005` will result in the empty sequence `()`.
+
+Ultimately, if the error code is not `XQPTY0005` and thus the failure cannot be mitigated. Throwing an exception within the callback using ``fn:error`` will cause the enitre fork and query to cease. 
+
+#### Multiple fail callbacks
+If multiple fail callbacks are added, multiple levels of error handling can be achieved. If the first callback is unable to process the error, it can itself throw an exception, which the second callback will be provided. This will continue until either a callback returns a value instead of erroring, or no further fail callbacks exist. In this ladder case, the query will cease.
+
+Here is an example of two callbacks
+```xquery
+promise:defer($work) 
+    => promise:fail(function ($err) {
+      if($err?code = 'XQPTY0005') 
+      then 'I fixed it!'
+      else fn:error(xs:QName('local:error'), 'Unfixable error!')}) 
+    => promise:fail(function ($err) {
+      if($err?description = 'Unfixable error!') 
+      then 'Never say never!'
+      else fn:error(xs:QName('local:error'), 'Its Fatal!')
+  })
 ```
 
 ### Adding callbacks
 There are two ways to add callbacks: 
 * During a promise's creation
 * After a promise's creation
-
-#### During Creation
-Lets see an example of the first case:
-
-Imagine we want to make a request using the standard ``http:send-request`` method and then extract the body in a single streamlined callback pipeline.
-
-Here is how this could be accomplished using the <code>promise</code> pattern and a ``then`` callback:
-```xquery
-let $req := <http:request method="GET" />
-let $request := http:send-request($req, ?)
-let $extract-body := function ($res) { $res[2] }
-let $promise := promise:defer($request, 'http://www.google.com', map { 
-       'then': $extract-body 
-})
-return
-  $promise()
-```
-In the above example we attached a ``then`` callback. This callback function has the ability to transform the output of it's parent ``promise``. With this in the mind, it should be clear that the ``$extract-body``'s return value will be retuned at the call to ``$promise()``. 
-
-In this example, since the ``$extract-body's`` input will be the result of its parent ``promise``. The result will be the response body of the http request.
 
 #### After creation
 The above example attached the ``callback`` during the call with ``defer``; however there is another, even more powerful way. 
@@ -238,10 +235,46 @@ Four methods, matching the callback event names, exist for attaching callbacks i
 let $retrieve := p:defer($worker, ($req, $uri))
        => p:then(parse-json(?))
        => p:then($extractlistItems)
+       => p:always(trace(?))
+       => p:done(file:write-text(?, $path))
        => p:fail($error)
 return
    $retrieve()
 ```
+
+#### During Creation
+Callbacks can also be attached during the call to `defer`. Simply provide a map of callback sequences with keys matching the callback event names. This can be useful in sharing the callback chains between calls to defer.
+
+```xquery
+let $callbacks := map {
+ 'then': do-some-transform(?),
+ 'done': trace(?)
+ ...
+}
+let $promises :=
+  for $i in $some-large-list
+  return
+    p:defer($work, $callbacks)
+...
+```
+
+Imagine we want to make a request using the standard ``http:send-request`` method and then extract the body in a single streamlined callback pipeline.
+
+Here is how this could be accomplished using the <code>promise</code> pattern and a ``then`` callback:
+```xquery
+let $req := <http:request method="GET" />
+let $request := http:send-request($req, ?)
+let $extract-body := function ($res) { $res[2] }
+let $promise := promise:defer($request, 'http://www.google.com', map { 
+       'then': $extract-body 
+})
+return
+  $promise()
+```
+In the above example we attached a ``then`` callback. This callback function has the ability to transform the output of it's parent ``promise``. With this in the mind, it should be clear that the ``$extract-body``'s return value will be retuned at the call to ``$promise()``. 
+
+In this example, since the ``$extract-body's`` input will be the result of its parent ``promise``. The result will be the response body of the http request.
+
 
 ##### attach
 A fifth method for attaching in mass is provided. The ``attach`` method accepts a map of callbacks
@@ -262,7 +295,7 @@ Multiple callbacks, not just one, can be attached to each of the 4 events. For e
 (: same $req, etc.. from above :)
 let $extract-links := function ($res) { $res//a }
 let $promise := promise:defer($request, 'http://www.google.com') 
-    => promise:then(($extract-body, $extract-linkes)) 
+    => promise:then(($extract-body, $extract-links)) 
     => promise:fail(trace?, ('Execution failed!'))
 return
   $promise()
@@ -289,11 +322,13 @@ let $write-and-return-users:= function ($name, $users) as item()* {(
       file:write($name, $users),
       $users
 )}
-let $extractDocName := promise:defer(doc(?), $doc-uri, map { 'then': extract-name(?) })
-let $extractUsers := promise:defer(json-doc(?), $uri, map { 'then': $extractListItems }) 
-let $users:= promise:when(($extractDocName, $extractUsers), map { 
-               'then': $write-and-return-users,
-               'fail': trace(?, 'Requesting users failed: ')
+let $extractDocName := promise:defer(doc(?), $doc-uri) 
+  => promise:then($extract-name)
+let $extractUsers := promise:defer(json-doc(?), $uri) 
+  => promise:then($extract-list-items) 
+let $users:= promise:when(($extractDocName, $extractUsers))
+               => promise:then($write-and-return-users)
+               => promise:fail(trace(?, 'Requesting users failed: '))
 })
 return
     $users() ! trace(.?username, 'Retrieved: ')
