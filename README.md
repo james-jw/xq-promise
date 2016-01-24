@@ -54,7 +54,9 @@ I want to give a quick thanks to the [BaseX][1] team for their wonder implementa
 It is because of their hard work, code samples, stellar architecture and code readability that this module was made possible! 
 
 ## Installation
-Copy the ``xq-promise-x.jar`` into your ``basex\lib`` directory 
+ 
+ 1. Copy the ``xq-promise-x.jar`` into your ``basex\lib`` directory 
+ 2. Install the ``xq-promise.xqm`` module found at: ``https://github.com/james-jw/xq-promise/src/main/xquery/xq-promise.xqm``
 
 Or use [xqpm][5] to do it for you:
 ```
@@ -65,7 +67,7 @@ xqpm xq-promise
 To use the module in your scripts simple import it like so:
 
 ```xquery
-import module namespace promise = 'org.jw.basex.async.xq-promise';
+import module namespace promise = 'https://github.com/james-jw/xq-promise';
 ```
 
 ### Version 0.8.0-BETA
@@ -95,7 +97,7 @@ defer($work as function(*),
 The signature may look daunting but the pattern is simple. Use the <code>defer</code> method to defer a piece of work for later execution by passing in a function item and the future arguments. Lets see how this works with an example:
 
 ```xquery
-import module namespace promise = 'org.jw.basex.async.xq-promise';
+import module namespace promise = 'https://github.com/james-jw/xq-promise';
 let $greet := function($name) {
    'Hello ' || $name || '!'
 }
@@ -356,7 +358,7 @@ As seen earlier, ``promises`` can be used to build up a piece of work for later 
 Lets see how we can use this capability by comparing a simple example involving making http requests. The example will use the ``promise`` pattern but not ``fork-join`` just yet. 
 
 ```xquery
-import module namespace promise = 'org.jw.basex.async.xq-promise';
+import module namespace promise = 'https://github.com/james-jw/xq-promise';
 let $work := http:send-request(<http:request method="GET" />, ?)
 let $extract-doc := function ($res) { $res[2] }
 let $extract-links := function ($res) { $res//a[@href => matches('^http')] }
