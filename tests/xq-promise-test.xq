@@ -267,6 +267,13 @@ declare %unit:test function test:helper-chain() {
     )
 };
 
+declare %unit:test function test:array-arguments-not-flattened() {
+  let $arguments := array { "a", "b", "c" }
+  let $promise := promise:defer(fn:concat#3, $arguments)
+  return  
+    unit:assert-equals("abc", $promise())
+};
+
 declare %unit:test function test:fork-eval() {
    let $query := '1 to 100 ! (.)'
    let $promise := promise:fork(xquery:eval(?), $query)

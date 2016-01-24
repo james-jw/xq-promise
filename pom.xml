@@ -4,7 +4,7 @@
 
   <groupId>org.jw.basex</groupId>
   <artifactId>xq-promise</artifactId>
-  <version>0.8.0-Beta</version>
+  <version>0.8.1-Beta</version>
   <packaging>jar</packaging>
   
   <name>xq-promise</name>
@@ -26,9 +26,9 @@
     <dependency>
       <groupId>org.basex</groupId>
       <artifactId>basex</artifactId>
-      <version>8.4-SNAPSHOT</version>
+      <version>8.3.1</version>
       <scope>system</scope>
-      <systemPath>${project.basedir}/lib/basex-8.4-SNAPSHOT.jar</systemPath>
+      <systemPath>${project.basedir}/lib/BaseX831.jar</systemPath>
     </dependency>
   </dependencies>
   <organization>

@@ -266,6 +266,14 @@ public class XqDeferred extends FItem implements XQFunction {
 		;
 		return argsArray.toArray(emptyValueArray);
 	}
+	
+	private Value[] arrayToValueArray(Array in) {
+		Value[] vb = new Value[(int) in.arraySize()];
+		for(int i = 0; i < in.arraySize(); i++) {
+			vb[i] = in.get(i);
+		}
+		return vb;
+	}
 
 	/**
 	 * Invokes a method, transforming the arguments to match the function item
@@ -282,10 +290,7 @@ public class XqDeferred extends FItem implements XQFunction {
 		Value out;
 
 		int arity = funcItem.arity(); // Arity of the function to call
-		int expected = _work == null ? _futures.size() : _work.length; // Expected
-																		// work
-																		// to be
-																		// returned
+		int expected = _work == null ? _futures.size() : _work.length; // Expected  work to be returned
 		int actual = in.length; // Actual number of arguments
 
 		if (funcItem instanceof XqDeferred) {
@@ -296,16 +301,16 @@ public class XqDeferred extends FItem implements XQFunction {
 			out = funcItem.invokeValue(qc, ii);
 		} else if (actual != expected || arity > actual) {
 			Value args = in[0];
-			if (args.size() == 1) {
-				out = funcItem.invokeValue(qc, ii, args);
+			if (args.size() == 1 && args instanceof Array) {
+			    Value[] vb = arrayToValueArray((Array) args);	
+			    out = funcItem.invokeValue(qc, ii, vb);
 			} else if (expected > arity) {
 				out = funcItem.invokeValue(qc, ii, Array.from(valueToArray(args)));
 			} else {
 				out = funcItem.invokeValue(qc, ii, valueToArray(args));
 			}
 		} else {
-			throw new QueryException(
-					"Invalid number of arguments returned. Expected " + expected + " but was " + actual);
+			throw new QueryException("Invalid number of arguments returned. Expected " + expected + " but was " + actual);
 		}
 
 		return out;
