@@ -361,7 +361,7 @@ Lets see how we can use this capability by comparing a simple example involving 
 import module namespace promise = 'https://github.com/james-jw/xq-promise';
 let $work := http:send-request(<http:request method="GET" />, ?)
 let $extract-doc := function ($res) { $res[2] }
-let $extract-links := function ($res) { $res//a[@href => matches('^http')] }
+let $extract-links := function ($res) { $res//*:a[@href => matches('^http')] }
 let $promises :=
   for $uri in ((1 to 5) !  ('http://www.google.com', 'http://www.yahoo.com', 'http://www.amazon.com', 'http://cnn.com', 'http://www.msnbc.com'))
   let $defer := promise:defer($work, $uri, map {
