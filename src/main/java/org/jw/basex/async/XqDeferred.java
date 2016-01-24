@@ -235,7 +235,11 @@ public class XqDeferred extends FItem implements XQFunction {
 
 		eb.add(Str.get(e.error() == null ? e.qname().toString() : e.error().code));
 		eb.add(Str.get(e.getLocalizedMessage()));
-		eb.add(Str.get(e.file()));
+		if(e.file() != null) {
+			eb.add(Str.get(e.file()));
+		} else {
+			eb.add(Str.get(""));
+		}
 		eb.add(Int.get(e.line()));
 		eb.add(Int.get(e.column()));
 		eb.add(Array.from(this._work));
@@ -303,6 +307,9 @@ public class XqDeferred extends FItem implements XQFunction {
 			Value args = in[0];
 			if (args.size() == 1 && args instanceof Array) {
 			    Value[] vb = arrayToValueArray((Array) args);	
+			    if(funcItem.arity() != vb.length) {
+			       throw new QueryException("Invalid number of arguments returned. Expected " + funcItem.arity() + " but was " + vb.length);
+			    }
 			    out = funcItem.invokeValue(qc, ii, vb);
 			} else if (expected > arity) {
 				out = funcItem.invokeValue(qc, ii, Array.from(valueToArray(args)));

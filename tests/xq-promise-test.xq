@@ -274,6 +274,17 @@ declare %unit:test function test:array-arguments-not-flattened() {
     unit:assert-equals("abc", $promise())
 };
 
+declare %unit:test function test:array-as-arguments-invalid-count() {
+  let $arguments := array { "a", "b", "c" }
+  return try {
+      promise:defer(function ($x, $y) { $x || $y }, $arguments)(),
+      error(xs:QName('test:error'), 'Should have thrown exception')
+    } catch * {
+      if(trace($err:description) => matches('Invalid number')) then ()
+      else error(xs:QName('test:error'), 'Should have throw invalid arguments exception')
+    }
+};
+
 declare %unit:test function test:fork-eval() {
    let $query := '1 to 100 ! (.)'
    let $promise := promise:fork(xquery:eval(?), $query)
