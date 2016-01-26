@@ -172,7 +172,7 @@ public class XqPromise extends QueryModule implements QueryResource  {
 		}
 
 		for (Value p : promises) {
-			XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(p, 2, 0l, promises.size(), new QueryContext(queryContext, true), null);
+			XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(p, 2, 0l, promises.size(), new QueryContext(queryContext), null);
 			out.add(executor.submit(task));
 		}
 
@@ -202,32 +202,32 @@ public class XqPromise extends QueryModule implements QueryResource  {
   public Value forkJoin(final Value deferreds, Int workSplit) throws QueryException {
     ValueBuilder vb = new ValueBuilder();
     XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(deferreds, Integer.parseInt(workSplit.toString() + ""), 0l, 
-    		deferreds.size(), new QueryContext(queryContext, true), null, vb.value());
-    
+        deferreds.size(), new QueryContext(queryContext), null, vb.value());
+
     if(pool.isShutdown() || pool.isTerminated()) {
-	   pool = new ForkJoinPool(threads);
-	}
-    
+      pool = new ForkJoinPool(threads);
+    }
+
     try { 
-    	return pool.invoke(task); 
+      return pool.invoke(task); 
     } catch (Exception e) { 
-    	String path = System.getProperty("user.home") + File.separator + "xq-promise.log";
-    	
-    	try {
-			File writer = new File(path);
-			PrintStream ps = new PrintStream(writer);
-			e.printStackTrace(ps);
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-    	
-    	QueryException cause = (QueryException) findQueryException(e);
-    	if(cause != null) {
-    		throw cause;
-    	}
-        
-    	String msg = "Fork-join failed: POTENTIAL BUG with xq-promise! ... Stack Trace: (" + path + ")";
-        throw new QueryException(msg + e.toString());
+      String path = System.getProperty("user.home") + File.separator + "xq-promise.log";
+
+      try {
+        File writer = new File(path);
+        PrintStream ps = new PrintStream(writer);
+        e.printStackTrace(ps);
+      } catch (IOException e1) {
+        e1.printStackTrace();
+      }
+
+      QueryException cause = (QueryException) findQueryException(e);
+      if(cause != null) {
+        throw cause;
+      }
+
+      String msg = "Fork-join failed: POTENTIAL BUG with xq-promise! ... Stack Trace: (" + path + ")";
+      throw new QueryException(msg + e.toString());
     }
   }
   
@@ -247,32 +247,32 @@ public class XqPromise extends QueryModule implements QueryResource  {
    * @throws QueryException
    */
   public Value forkJoin(final Value deferreds, Int workSplit, Int threadsIn) throws QueryException {
-	    ForkJoinPool customPool = new ForkJoinPool(Integer.parseInt(threadsIn + ""));
-	    XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(deferreds, Integer.parseInt(workSplit.toString() + ""), 0l, deferreds.size(), new QueryContext(queryContext, true), null);
-	    Value out = customPool.invoke(task);
-	    customPool.shutdown();
-	    return out;
+    ForkJoinPool customPool = new ForkJoinPool(Integer.parseInt(threadsIn + ""));
+    XqForkJoinTask<Value> task = new XqForkJoinTask<Value>(deferreds, Integer.parseInt(workSplit.toString() + ""), 0l, deferreds.size(), new QueryContext(queryContext), null);
+    Value out = customPool.invoke(task);
+    customPool.shutdown();
+    return out;
   }
 
-	@Override
-	public void close() {
-		executor.shutdown();
-		try {
-			executor.awaitTermination(1, TimeUnit.SECONDS);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+  @Override
+  public void close() {
+    executor.shutdown();
+    try {
+      executor.awaitTermination(1, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
 
-		pool.shutdown();
-	}
-	
-	public static void ensureNotUpdatingFunction(FItem item) throws QueryException {
-		FItem cb = (FItem) item;
-	  	AnnList anns = cb.annotations();
-	  	if(anns != null && anns.contains(Annotation.UPDATING)) {
-	  		throw new QueryException("Error: Updating expressions are not allowed in 'xq-promise' callbacks.");
-	  	}
-	}
+    pool.shutdown();
+  }
+
+  public static void ensureNotUpdatingFunction(FItem item) throws QueryException {
+    FItem cb = (FItem) item;
+    AnnList anns = cb.annotations();
+    if(anns != null && anns.contains(Annotation.UPDATING)) {
+      throw new QueryException("Error: Updating expressions are not allowed in 'xq-promise' callbacks.");
+    }
+  }
 
 	public static FItem get_errorMapFunction() {
 		return _errorMapFunction;
