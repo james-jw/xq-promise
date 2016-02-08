@@ -161,7 +161,7 @@ public class XqDeferred extends FItem implements XQFunction {
       }
     } catch (QueryException e) {
       Value err = this.mapError(e, qc, ii, args);
-      out = processFailureCallback(err, qc, ii, e, 0);
+      return processFailureCallback(err, qc, ii, e, 0);
     } catch (Throwable e) {
       try {
         File writer = new File("C:\\xq-promise-deferred.log");

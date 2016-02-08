@@ -6,7 +6,7 @@ An implementation of the promise and fork-join patterns for async processing in 
 * [Thanks!](#thanks)
 * [Installation](#installation)
  + [Declaration](#declaration)
- + [Version 0.8.1-BETA](#version-081-beta)
+ + [Version 0.8.2-BETA](#version-082-beta)
  + [Dependencies](#dependencies)
 * [The Basics of a Promise](#the-basics-of-a-promise)
  + [defer](#defer)
@@ -70,7 +70,7 @@ To use the module in your scripts simple import it like so:
 import module namespace promise = 'https://github.com/james-jw/xq-promise';
 ```
 
-### Version 0.8.1-BETA
+### Version 0.8.2-BETA
 This module is currently in Beta and should be used with caution. Especially in scenarios involving the
 writing of sensitive data. 
 

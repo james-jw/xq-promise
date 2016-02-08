@@ -30,6 +30,18 @@ declare %unit:test function test:callbacks-fail() {
     ($promise(), unit:assert(file:exists($path)), file:delete($path))
 };
 
+declare %unit:test function test:callbacks-fail-mitigate() {
+  let $add-enthusiasm := function ($phrase) { $phrase || '!' }
+  let $quote := function($phrase) { "'" || $phrase || "'" }
+  let $fail := function () { fn:error('Failed!') }
+  let $promise := promise:defer($add-enthusiasm, 'Hello World')
+      => promise:then($fail)
+      => promise:fail(trace(?))
+      => promise:then($quote)
+  return
+    (unit:assert($promise(), '"Hello World!"'))
+};
+
 declare %unit:test function test:callbacks-fail-fix-value() {
   let $callback := function () { 'Hello world!' }
   let $work := promise:defer(function () { fn:error(xs:QName('promise:error'), 'Failed!') })
