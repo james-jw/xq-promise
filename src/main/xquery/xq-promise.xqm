@@ -2,111 +2,107 @@ module namespace p = 'https://github.com/james-jw/xq-promise';
 import module namespace promise = 'org.jw.basex.async.xq-promise'; 
 
 (:~ 
- : Maps an error array from the xq-promise.jar Java code
- : into an XQuery map for easier error handling
- :)
-declare %private function p:map-error($err) as map(*) {
-  map {
-    'code': $err[1],
-    'description': $err[2],
-    'module': $err[3],
-    'line': $err[4],
-    'column': $err[5],
-    'value': $err[8],
-    'additional': map {
-      'deferred': if(count($err[6]) = 1) then $err[6]?1 else $err[6] ,
-      'arguments': $err[7]
-    }
-  }
-};
-
-(: Provide the map-error function to the Java QueryModule :)
-declare variable $p:init := promise:init(p:map-error(?));
-
-(:~ 
- : Defers a piece of work for later execution
- :) 
-declare function p:defer($work as function(*)) as function(*) {
-  (promise:init(p:map-error(?)), promise:defer($work))
-};
-
-(:~ 
- : Defers a piece of work, with the specified arguments for later execution
- :) 
-declare function p:defer($work as function(*), $args as item()*) as function(*) {
-  (promise:init(p:map-error(?)), promise:defer($work, $args))
-};
-
-(:~ 
  : Defers a piece of work, with the specified arguments and callbacks for later execution
  :) 
-declare function p:defer($work as function(*), $args as item()*, $callbacks as map(*)) as function (*) {
-  (promise:init(p:map-error(?)), promise:defer($work, $args, $callbacks))
+declare function p:defer($work as function(*), $args as item()*) {
+  function () {
+    fn:apply($work, if($args instance of array(*)) then $args else array { $args })
+  }
 };
 
 (:~ 
  : Adds the callbacks provided to the then chain of the provided deferreds
  :)
-declare function p:then($deferred as function(*), $callbacks as function(*)*) as function(*) {
-  promise:then($deferred, $callbacks)
+declare function p:then($promise, $callback) {
+  function () {
+    let $out := p:invoke($promise, ())
+    return 
+      if($out instance of function(*) and 
+         not($out instance of array(*) or $out instance of map(*))) 
+      then p:then($out, $callback)
+      else p:invoke($callback, $out) 
+  }  
 };
 
 (:~ 
  : Adds the callbacks provided to the done chain of the provided deferreds
  :)
-declare function p:done($deferred as function(*), $callbacks as function(*)*) as function (*) {
-  promise:done($deferred, $callbacks)
-};
-
-(:~ 
- : Adds the callbacks provided to the always chain of the provided deferreds
- :)
-declare function p:always($deferred as function(*), $callbacks as function(*)*) as function (*) {
-  promise:always($deferred, $callbacks)
-};
-
-(:~ 
- : Adds the callbacks provided to the failure chain of the provided deferreds
- :)
-declare function p:fail($deferred as function(*), $callbacks as function(*)*) as function(*) {
-  promise:fail($deferred, $callbacks)
+declare function p:done($promise, $callback) {
+  function () {
+    let $out := $promise()
+    return 
+       ($out, prof:void(p:invoke($callback, $out)))
+  }
 };
 
 (:~ 
  : Combines a set of promises into a single promise
  :)
-declare function p:when($deferreds as function(*)*) as function (*) {
-  promise:when($deferreds)
+declare function p:when($inputs as item()*) {
+  function () {
+    array {
+      for $input in $inputs
+      return
+        if($input instance of function(*))
+        then $input() else $input 
+    }
+  }
 };
 
 (:~ 
- : Combines a set of promises into a single promise and applies a set of callbacks
+ : Adds the callbacks provided to the always chain of the provided deferreds
  :)
-declare function p:when($deferreds as function(*)*, $callbacks as map(*)) {
-  promise:when($deferreds, $callbacks)
+declare function p:always($promise, $callback) {
+  function () {
+    try { 
+      let $out := $promise()
+      return
+        ($out, prof:void(p:invoke($callback, $out)))
+    } catch * {
+      let $error := map {
+          'code': $err:code,
+          'description': $err:description,
+          'module': $err:module,
+          'line': $err:line-number,
+          'column': $err:column-number,
+          'value': $err:value,
+          'additional': map {
+            'deferred': $promise
+          }
+      }
+        return
+          p:invoke($callback, $error)
+    } 
+  }
 };
 
-(:~ 
- : Adds the callbacks provided to the appropriate chains on the provided deferreds
- :)
-declare function p:attach($deferred as function(*), $callbacks as map(*)) as function (*) {
-  promise:attach($deferred, $callbacks)
+declare function p:fail($promise, $handler) {
+  function () {
+    try {
+      $promise()
+    } catch * {
+      let $error := map {
+        'code': $err:code,
+        'description': $err:description,
+        'module': $err:module,
+        'line': $err:line-number,
+        'column': $err:column-number,
+        'value': $err:value,
+        'additional': map {
+          'deferred': $promise
+        }
+     }
+      return
+        p:invoke($handler, $error)
+    }
+  }
 };
 
-(:~ 
- : Forks the provided functions or deferred work in a new thread. Returns a sealed promise
- : which can no long accept callbacks.
- :)
-declare function p:fork($work as function(*)) as function(*) {
-  promise:fork($work)
-};
-
-(:~ 
- : Forks the provided functions or deferred work in a new thread. Returns a sealed promise
- : which can no long accept callbacks.
- :)
-declare function p:fork($work as function(*), $arguments as item()*) as function(*) {
-  promise:fork($work, $arguments)
+declare function p:invoke($handler, $input) {
+  if(fn:function-arity($handler) = 0) then $handler()
+  else if (fn:function-arity($handler) > 1 and $input instance of array(*)) then
+    fn:apply($handler, $input)
+  else $handler($input)
 };
 
 (:~ 
@@ -121,7 +117,8 @@ declare function p:fork-join($work as function(*)*) as item()* {
  : Forks the provided functions or deferred work in a fork join fashion, returning the results once all
  : forked computation is complete.
  :)
-declare function p:fork-join($work as function(*)*, $compute-size as xs:integer) as item()* {
+declare function p:fork-join($work as function(*)*, 
+                             $compute-size as xs:integer) as item()* {
   promise:fork-join($work, $compute-size)
 };
 
@@ -129,16 +126,8 @@ declare function p:fork-join($work as function(*)*, $compute-size as xs:integer)
  : Forks the provided functions or deferred work in a fork join fashion, returning the results once all
  : forked computation is complete.
  :)
-declare function p:fork-join($work as function(*)*, $compute-size as xs:integer, $max-forks as xs:integer) as item()* {
+declare function p:fork-join($work as function(*)*, 
+                             $compute-size as xs:integer, 
+                             $max-forks as xs:integer) as item()* {
   promise:fork-join($work, $compute-size, $max-forks)
 };
-
-(:~ 
- : Denotes is a function is a deferred promise
- :)
-declare function p:is-promise($function as function(*)) as xs:boolean {
-  promise:is-promise($function)
-};
-
-
-

@@ -47,8 +47,7 @@ public class XqForkJoinTask<T extends Value> extends RecursiveTask<Value>impleme
     work = deferreds;
 
     for(Value deferred : deferreds) {
-      if(deferred instanceof FItem && !(deferred instanceof XqDeferred)) {
-        XqPromise.ensureNotUpdatingFunction((FItem) deferred);
+      if(deferred instanceof FItem) {
         if (((FItem)deferred).arity() != 0) {
           throw new QueryException("Invalid input: fork-join can only accept deferred objects, or zero arity functions.");
         }

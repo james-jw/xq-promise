@@ -10,22 +10,12 @@ declare %unit:test function test:promise() {
       unit:assert-equals($promise(), 'Hello world!')
  };
 
-declare %unit:test function test:callbacks-add() {
-  for $type in ('then', 'done', 'always')
-  return
-    let $path := file:temp-dir() || $type || '.txt'
-    let $callback := file:write-text($path, ?)
-    let $work := promise:defer(trace(?, 'Hello world!'), $type)
-    let $promise := promise:attach($work, (map { $type: $callback }))
-    return
-      ($promise(), unit:assert(file:exists($path)), file:delete($path))
-};
 
 declare %unit:test function test:callbacks-fail() {
   let $path := file:temp-dir() || 'fail.txt'
   let $callback := function () { file:write-text($path, 'Failed!') }
-  let $work := promise:defer(function () { fn:error('Failed!') })
-  let $promise := promise:attach($work, map { 'fail': $callback })
+  let $work := function () { fn:error('Failed!') }
+  let $promise := promise:fail($work,  $callback )
   return
     ($promise(), unit:assert(file:exists($path)), file:delete($path))
 };
@@ -36,7 +26,7 @@ declare %unit:test function test:callbacks-fail-mitigate() {
   let $fail := function () { fn:error('Failed!') }
   let $promise := promise:defer($add-enthusiasm, 'Hello World')
       => promise:then($fail)
-      => promise:fail(trace(?))
+      => promise:fail(function () { () })
       => promise:then($quote)
   return
     (unit:assert($promise(), '"Hello World!"'))
@@ -44,16 +34,16 @@ declare %unit:test function test:callbacks-fail-mitigate() {
 
 declare %unit:test function test:callbacks-fail-fix-value() {
   let $callback := function () { 'Hello world!' }
-  let $work := promise:defer(function () { fn:error(xs:QName('promise:error'), 'Failed!') })
-  let $promise := promise:attach($work, map { 'fail': $callback })
+  let $work := function () { fn:error(xs:QName('promise:error'), 'Failed!') }
+  let $promise := promise:fail($work, $callback)
   return
     unit:assert-equals($promise(), 'Hello world!')
 };
 
 declare %unit:test function test:callbacks-fail-fatal() {
   let $callback := function () { fn:error('Callback Failed!') }
-  let $work := promise:defer(function () { fn:error('Failed!') })
-  let $promise := promise:attach($work, map { 'fail': $callback })
+  let $work := function () { fn:error('Failed!') }
+  let $promise := promise:fail($work, $callback)
   let $result := 
     try { 
       unit:assert-equals($promise(), 'Hello world!')
@@ -65,9 +55,8 @@ declare %unit:test function test:callbacks-fail-fatal() {
 declare %unit:test function test:callback-then() {
   let $greet := function ($name) { 'Hello ' || $name || '!'}
   let $promise := 
-      promise:defer(trace(?), 'world', map {
-          'then': $greet
-      })
+      promise:defer(trace(?), 'world')
+        => promise:then($greet)
   return
     unit:assert-equals($promise(), 'Hello world!')
 };
@@ -78,7 +67,7 @@ declare %unit:test function test:callback-always-on-fail() {
   let $callback := function ($err) { file:write-text($path, $err?description) }
   let $failedWork := function () { fn:error(xs:QName('promise:error'), "Failed!") }
   let $work := promise:defer($failedWork, $type)
-  let $promise := promise:attach($work, map { $type: $callback })
+  let $promise := promise:always($work, $callback )
   return
     (try { $promise() } catch * {()}, unit:assert-equals(file:exists($path), true()), file:delete($path))
 };
@@ -87,9 +76,9 @@ declare %unit:test function test:multiple-callbacks() {
   let $greet := function ($name) { 'Hello ' || $name }
   let $get-end := function ($name) { $name || '!' }
   let $promise := 
-      promise:defer(trace(?), 'world', map {
-          'then': ($get-end, $greet)
-      })
+      promise:defer(trace(?), 'world')
+        => promise:then($get-end)
+        => promise:then($greet)
   return
     unit:assert-equals($promise(), 'Hello world!')
 };
@@ -109,9 +98,8 @@ declare %unit:test function test:when-with-same-arity() {
   let $promise := 
     promise:when((
       promise:defer(trace(?), 'Hello'),
-      promise:defer(trace(?), 'world')),
-      map { 'then': $greet }
-  )
+      promise:defer(trace(?), 'world')))
+      => promise:then($greet)
   return
    unit:assert-equals($promise(), 'Hello world!')
 };
@@ -122,9 +110,8 @@ declare %unit:test function test:when-with-diff-arity() {
     promise:when(
       (
         promise:defer(trace(?), 'Hello'),
-        promise:defer(trace(?), 'world')),
-        map { 'then': $greet }
-    )
+        promise:defer(trace(?), 'world')))
+          => promise:then($greet)
   return
    unit:assert-equals($promise(), 'Hello world!')
 };
@@ -158,15 +145,6 @@ declare %unit:test function test:fork-join-shared-resource() {
       unit:assert-equals($sum, 501501)
 };
 
-declare %unit:test function test:is-promise() {
-   let $promise := promise:defer(trace(?), '')
-   return
-   (
-      unit:assert-equals(promise:is-promise($promise), true()),
-      unit:assert-equals(promise:is-promise(trace(?)), false())
-   )
-};
-
 declare %unit:test function test:fork-join-regular-functions() {
   let $work := for $i in (1 to 10) 
               return
@@ -180,45 +158,13 @@ declare %unit:test function test:fork-join-regular-functions() {
 
 declare %unit:test function test:multiple-arity-callback() {
   let $worker := function($fname, $lname) { 'Hello, ' || $fname || ' ' || $lname }
-  let $promise := promise:defer($worker, ('every', 'one'), map {
-    'then': function($p) { 'then: ' || $p },
-    'fail': function ($result as item()*) {
+  let $promise := promise:defer($worker, ('every', 'one'))
+     => promise:then(function($p) { 'then: ' || $p })
+     => promise:fail(function ($result as item()*) {
               trace($result, 'Request failed!') => prof:void()
-            }
-  })
+        })
   return
    unit:assert-equals($promise(), 'then: Hello, every one')
-};
-
-declare %unit:test function test:fork() {
-  let $worker := function($fname, $lname) { 'Hello, ' || $fname || ' ' || $lname }
-  let $future := promise:fork($worker, ('every', 'one'))
-  return
-     unit:assert-equals($future(), 'Hello, every one')
-};
-
-declare %unit:test function test:fork-with-callback() {
-  let $worker := function($fname) { 'Hello, ' || $fname }
-  let $future := 
-       promise:fork(
-         promise:defer($worker, 'every') 
-           => promise:then(function($str) { $str || ' one' })
-       )
-  return
-     unit:assert-equals($future(), 'Hello, every one')
-};
-
-declare %unit:test function test:fork-when() {
-  let $worker := function($fname, $lname) { 'Hello, ' || $fname || ' ' || $lname }
-  let $worker2 := function($fname, $lname) { 'and ' || $fname || ' ' || $lname || '!' }
-  let $combine := function ($start, $end) { $start || ' ' || $end }
-  let $future := promise:fork($worker, ('every', 'one'))
-  let $future2 := promise:fork($worker2, ('all', 'my peeps'))
-  return
-    unit:assert-equals(
-     (promise:when(($future, $future2)) => promise:then($combine))(),
-      'Hello, every one and all my peeps!'
-    )
 };
 
 declare %unit:test function test:then-helper() {
@@ -292,64 +238,20 @@ declare %unit:test function test:array-as-arguments-invalid-count() {
       promise:defer(function ($x, $y) { $x || $y }, $arguments)(),
       error(xs:QName('test:error'), 'Should have thrown exception')
     } catch * {
-      if(trace($err:description) => matches('Invalid number')) then ()
+      if(trace($err:description) => matches('Arity and number')) then ()
       else error(xs:QName('test:error'), 'Should have throw invalid arguments exception')
     }
 };
 
 declare %unit:test function test:fork-eval() {
    let $query := '1 to 100 ! (.)'
-   let $promise := promise:fork(xquery:eval(?), $query)
+   let $promise := promise:defer(xquery:eval(?), $query)
    return 
-     (unit:assert-equals(count($promise()),100 ))
-};
-
-declare %unit:test function test:ad-callback-to-busy-deferred() {
-  try {
-   let $query := '1 to 100 ! (.)'
-   let $promise := promise:fork(xquery:eval(?), $query)
-           => promise:then(trace(?, 'The end!'))
-   return 
-         (unit:assert-equals(count($promise()),100 ))
-  } catch * {
-    if($err:description => matches('busy')) then ()
-    else error(xs:QName('test:error'), ('Should have thrown busy deferred error'))
-  }
+     (unit:assert-equals(count(promise:fork-join($promise)),100 ))
 };
 
 declare updating function test:updating($item) {
   db:create('test-updating-function')
-};
-
-declare %unit:test function test:updating-deferred-not-allowed() {
-  try { (
-    promise:defer(test:updating(?)),
-    fn:error(xs:QName('test:error'), 'Should have thrown updating deferred error') 
-  )} catch * {
-    if($err:description => matches('Updating expressions are not allowed')) then ()
-    else fn:error(xs:QName('test:error'), 'Should have thrown updating deferred error') 
-  } 
-};
-
-declare %unit:test function test:updating-fork-not-allowed() {
-  try { (
-    promise:fork(test:updating(?)),
-    fn:error(xs:QName('test:error'), 'Should have thrown updating deferred error') 
-  )} catch * {
-    if($err:description => matches('Updating expressions are not allowed')) then ()
-    else fn:error(xs:QName('test:error'), 'Should have thrown updating deferred error') 
-  } 
-};
-
-declare %unit:test function test:updating-callback-not-allowed() {
-  try { (
-     promise:defer(trace(?))
-       => promise:done(test:updating(?)),
-    fn:error(xs:QName('test:error'), 'Should have thrown updating deferred error') 
-  )} catch * {
-    if($err:description => matches('Updating expressions are not allowed')) then ()
-    else fn:error(xs:QName('test:error'), 'Should have thrown updating deferred error') 
-  } 
 };
 
 declare function test:transform-test($item, $i) {
