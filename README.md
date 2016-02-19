@@ -124,7 +124,9 @@ In the above example we deferred a simple piece of work and then learned how to 
 A ``callback`` is a function which will be executed on the success or failure of some defered work. The available callback events to subscribe to are:
 
 #### then
-This callback will be invoked upon success of the deferred execution. It acts as a pipeline function for transforming the response over successive callback executions. Unlike the next two events, but similar to ``fail``, this method can alter the pipeline result, and generally does.
+The then helper functions accepts a method to call on success as well as one to call on failure. Neither is required. The symantics of the method are as defined by the Promise A+ specification.
+
+It acts as a pipeline function for transforming the response over successive callback executions. Unlike the next two events, but similar to ``fail``, this method can alter the pipeline result, and generally does.
 
 #### done
 Called on success. 
@@ -244,22 +246,6 @@ return
    $retrieve()
 ```
 
-#### During Creation
-Callbacks can also be attached during the call to `defer`. Simply provide a map of callback sequences with keys matching the callback event names. This can be useful in sharing the callback chains between calls to defer.
-
-```xquery
-let $callbacks := map {
- 'then': do-some-transform(?),
- 'done': trace(?)
- ...
-}
-let $promises :=
-  for $i in $some-large-list
-  return
-    p:defer($work, $callbacks)
-...
-```
-
 Imagine we want to make a request using the standard ``http:send-request`` method and then extract the body in a single streamlined callback pipeline.
 
 Here is how this could be accomplished using the <code>promise</code> pattern and a ``then`` callback:
@@ -267,46 +253,14 @@ Here is how this could be accomplished using the <code>promise</code> pattern an
 let $req := <http:request method="GET" />
 let $request := http:send-request($req, ?)
 let $extract-body := function ($res) { $res[2] }
-let $promise := promise:defer($request, 'http://www.google.com', map { 
-       'then': $extract-body 
-})
+let $promise := promise:defer($request, 'http://www.google.com') 
+       => promise:then($extract-body)
 return
   $promise()
 ```
 In the above example we attached a ``then`` callback. This callback function has the ability to transform the output of it's parent ``promise``. With this in the mind, it should be clear that the ``$extract-body``'s return value will be retuned at the call to ``$promise()``. 
 
 In this example, since the ``$extract-body's`` input will be the result of its parent ``promise``. The result will be the response body of the http request.
-
-
-##### attach
-A fifth method for attaching in mass is provided. The ``attach`` method accepts a map of callbacks
-similar to defer.
-
-```xquery
-promise:attach($work, map { 
-   'then': ..., 
-   'fail': ... })
-```
-
-When providing callbacks via a map, the order of callback types is irrelevant. For example, having fail above then does not matter. However, the order callbacks are provided within an individual chain is important as it denotes the execution order of that chain.
-
-#### Multiple Callbacks per event
-
-Multiple callbacks, not just one, can be attached to each of the 4 events. For example:
-```xquery
-(: same $req, etc.. from above :)
-let $extract-links := function ($res) { $res//a }
-let $promise := promise:defer($request, 'http://www.google.com') 
-    => promise:then(($extract-body, $extract-links)) 
-    => promise:fail(trace?, ('Execution failed!'))
-return
-  $promise()
-```
-Foremost, note the addition of a second ``then`` callback. Both of these will be called in order. The result of the first callback will be passed to the second. In this example, since ``then`` is a pipeline callback. The result will be all the links in the document.
-
-Second, note the ``fail`` callback.  It uses the power of XQuery 3.0 and [function items][8] to add a trace call when any part of the execution fails. How convenient!
-
-Hopefully its starting to come clear how the ``promise`` pattern can be quite useful.
 
 ### when
 Another critical method in the [promise][0] pattern is the ``when`` function.
@@ -364,13 +318,12 @@ let $extract-doc := function ($res) { $res[2] }
 let $extract-links := function ($res) { $res//*:a[@href => matches('^http')] }
 let $promises :=
   for $uri in ((1 to 5) !  ('http://www.google.com', 'http://www.yahoo.com', 'http://www.amazon.com', 'http://cnn.com', 'http://www.msnbc.com'))
-  let $defer := promise:defer($work, $uri, map {
-       'then': ($extract-doc),
-       'done': trace(?, 'Results found: ')})
+  let $defer := promise:defer($work, $uri)
+       => promise:then($extract-doc)
+       => promise:done(trace(?, 'Results found: ')})
+       => promise:then($extract-links)
   return 
-     promise:attach($defer, map {'then': $extract-links })
-return 
- $promises ! .()
+    $promises ! .()
 ```
 
 In the above example, we use promises to queue up 25 requests and then execute them in order with:
@@ -402,23 +355,7 @@ On my machine, the first example without ``fork-join`` took on average 55 second
 
 That is a clear advantage! Playing around with ``compute size`` and ``max forks``, which I will introduce shortly, I have been able to get this even lower, to around 2 seconds!!
 
-### fork
-In addition to `fork-join` is the simple `fork` method. The fork method operates much like `defer`, in that it returns a promise which accepts callbacks. Unlike defer however,
-the work its provided is executed immediately in a new thread. This is as opposed to being deferred for later execution. 
-
-For example, lets imagine we want to optimize the performance of a web response. During the processing, an external API is queried in addition other internal processing. The internal call is not dependend on the external call, until the end, and thus these operations can run in parrallel:
-
-```xquery
-let $request := http:send-request($req, ?)
-let $promise := promise:fork($request, 'http://myapi.com')
-let $hardAnswer := some-heavy-work()
-return
-  ($hardAnswer, $promise())
-```
-In the above example, the work of sending the http request, and waiting for it's response, will be forked immediately letting the main thread continue with computing the `$hardAnswer`. Once 
-that is done, both it and the promise can be returned.
-
-Hopefully its clear now what the use cases for both `fork-join` and `fork` are and how to use them!
+Hopefully its clear now what the use cases are for `fork-join` and how to use it!
 
 #### How to interact with shared resources
 With any async process comes the possibility of synchronization problems. Fortunately, XQuery due to its immutable nature is naturally suited to this type of work. Additionally from my limited look at BaseX, the code is very thread safe. Add to this, the introduction of the promise pattern and safe multi-threading appears to be real. 
@@ -539,12 +476,6 @@ return
 ```
 
 In this case, since the inner ``fork-join`` simply makes lots of external requests, this may actually improve execution time.
-
-### is-promise
-Let me quickly introduuce one final method. It can be used to deteremine if a function is a ``promise``.
-```xquery
-is-promise($func as item(*)) as xs:boolean
-```
 
 ## Limitations
 With any async process their are limitations. So far these are the only noticed limitations:
