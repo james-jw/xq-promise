@@ -1,5 +1,5 @@
 module namespace p = 'https://github.com/james-jw/xq-promise';
-import module namespace promise = 'org.jw.basex.async.xq-promise'; 
+import module namespace async = 'http://basex.org/modules/async'; 
 
 (:~ 
  : Defers a piece of work, with the specified arguments and callbacks for later execution
@@ -113,7 +113,7 @@ declare function p:fail($promise, $handler) {
  : forked computation is complete.
  :)
 declare function p:fork-join($work as function(*)*) as item()* {
-  promise:fork-join($work)
+  async:fork-join($work)
 };
 
 (:~ 
@@ -122,7 +122,7 @@ declare function p:fork-join($work as function(*)*) as item()* {
  :)
 declare function p:fork-join($work as function(*)*, 
                              $compute-size as xs:integer) as item()* {
-  promise:fork-join($work, $compute-size)
+  async:fork-join($work, $compute-size)
 };
 
 (:~ 
@@ -132,7 +132,7 @@ declare function p:fork-join($work as function(*)*,
 declare function p:fork-join($work as function(*)*, 
                              $compute-size as xs:integer, 
                              $max-forks as xs:integer) as item()* {
-  promise:fork-join($work, $compute-size, $max-forks)
+  async:fork-join($work,  map { 'thread-size': $compute-size, 'threads': $max-forks})
 };
 
 (: Private functions :)
